@@ -24,7 +24,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 
 import { Logo } from "@/components/icons/logo";
-import { Link } from "lucide-react";
+import Link from "next/link";
 
 export default function Login() {
     const formSchema = z.object({
@@ -100,7 +100,7 @@ export default function Login() {
                 </form>
             </Form >
             <div className=" absolute bottom-0 text-sm text-white">
-                <Link href={"https://www.mysagra.com/"} target="_blank" >
+                <Link href={"https://www.mysagra.com/"} target="_blank">
                     {"Powered by"}
                     <Button variant={"link"} className="p-1.5">
                         {"MySagra"}

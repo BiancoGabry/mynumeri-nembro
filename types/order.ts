@@ -3,3 +3,4 @@ type Order = {
     ticketNumber: number;
     displayCode: string;
 }
+type Status = `PENDING` | `CONFIRMED` | `COMPLETED` | `PICKED_UP`;

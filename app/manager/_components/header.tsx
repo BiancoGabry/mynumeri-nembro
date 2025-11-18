@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 
 export function Header() {
     return (
-        <header className="border-b">
+        <header className="border-b fixed top-0 z-10 flex h-16 w-full items-center justify-between bg-white px-4 shadow-sm">
             <div className="w-full px-4 py-4">
                 <h1 className="text-2xl font-bold">MyNumeri - Manager</h1>
             </div>
@@ -15,7 +15,7 @@ export function Header() {
                     <Settings className="h-4 w-4" />
                 </Button>
                 <Drawer>
-                    <DrawerTrigger>
+                    <DrawerTrigger asChild>
                         <Button variant="outline">
                             <FileText className="mr-2 h-4 w-4" />
                             Avvisi Display
@@ -40,7 +40,7 @@ export function Header() {
                             <DrawerFooter>
                                 <div className="flex items-center gap-2 place-content-end">
                                     <Button >Salva Avvisi</Button>
-                                    <DrawerClose>
+                                    <DrawerClose asChild>
                                         <Button variant="outline">Annulla</Button>
                                     </DrawerClose>
                                 </div>
