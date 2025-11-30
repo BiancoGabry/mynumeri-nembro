@@ -1,112 +1,44 @@
 "use client"
 
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormMessage,
-} from "@/components/ui/form"
-
-import { Input } from "@/components/ui/input"
-
-import {
-    Card,
-    CardContent,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-
-import z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-
-import { Logo } from "@/components/icons/logo";
+import { useState, useEffect } from 'react';
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { LoginForm } from "@/components/login/login-form";
+import { useTheme } from 'next-themes';
+import { Moon, Sun, } from 'lucide-react';
 
-export default function Login() {
-    const formSchema = z.object({
-        username: z.string(),
-        password: z.string()
-    });
+export default function LoginPage() {
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
 
-    const form = useForm<z.input<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            username: "",
-            password: ""
-        }
-    });
-
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values);
-    }
-
+    // Prevent hydration mismatch by only rendering theme toggle after mount
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     return (
-        <div className="h-screen w-full flex place-content-center items-center bg-secondary-foreground">
-            <h1 className="text-primary absolute top-0 p-3 md:left-0 font-bold text-lg">{process.env.NEXT_PUBLIC_APP_NAME}</h1>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                    <div className="h-screen w-full flex flex-col items-center place-content-center">
-                        <Card className="w-[350px]">
-                            <CardHeader>
-                                <div className="relative flex w-full place-content-center pb-6">
-                                    <Logo className="h-28" />
-                                </div>
-                                <CardTitle className="text-center">MyNumeri</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-col gap-2">
+        <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+            <div className="w-full max-w-sm md:max-w-4xl">
+                <LoginForm />
+            </div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="username"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Input placeholder={"Username"} {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="password"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Input placeholder={"Password"} type="password" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </CardContent>
-                            <CardFooter className="flex justify-between">
-                                <Button
-                                    variant="outline"
-                                    type="button"
-                                    onClick={() => form.reset()}
-                                >
-                                    {"Clear"}
-                                </Button>
-                                <Button type="submit">{"Login"}</Button>
-                            </CardFooter>
-                        </Card>
-                    </div >
-                </form>
-            </Form >
-            <div className=" absolute bottom-0 text-sm text-white">
-                <Link href={"https://www.mysagra.com/"} target="_blank">
+            <div className="absolute bottom-0 text-sm text-muted-foreground select-none">
+                <Link href={"https://www.mysagra.com/"} target="_blank" rel="noopener noreferrer">
                     {"Powered by"}
-                    <Button variant={"link"} className="p-1.5">
+                    <Button variant={"link"} className="text-primary p-1.5">
                         {"MySagra"}
                     </Button>
                 </Link>
             </div>
+            <div className="absolute bottom-0 right-0 m-4">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                    {mounted && (theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
+                </Button>
+            </div>
         </div>
-    )
+    );
 }
