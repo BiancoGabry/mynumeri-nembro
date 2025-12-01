@@ -1,0 +1,26 @@
+"use client";
+
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+
+export function SettingsHeader() {
+    const router = useRouter();
+
+    return (
+        <header className="border-b fixed top-0 z-10 flex h-16 w-full items-center justify-between bg-card px-4 shadow-sm">
+            <div className="flex items-center gap-3">
+                <img
+                    src="/logo.svg"
+                    alt="Logo"
+                    className="mx-auto h-10 w-auto select-none"
+                />
+                <h1 className="text-2xl font-bold select-none">Impostazioni</h1>
+            </div>
+            <Button variant="outline" onClick={() => router.push("/manager")}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Torna al Manager
+            </Button>
+        </header>
+    );
+}

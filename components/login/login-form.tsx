@@ -9,7 +9,7 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, FormProvider } from "react-hook-form"
 import { toast } from "sonner";
-import { login as loginAction } from "@/actions/auth";
+import { signIn } from "next-auth/react";
 import z from "zod"
 
 export function LoginForm() {
@@ -32,14 +32,20 @@ export function LoginForm() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
-            const result = await loginAction(values.username, values.password);
-            if (result.success) {
-                // Wait a bit for session to be fully set
-                await new Promise(resolve => setTimeout(resolve, 100));
-                window.location.href = '/mangaer'; // Force full page reload to ensure session is loaded
-            } else {
+            const result = await signIn("credentials", {
+                username: values.username,
+                password: values.password,
+                redirect: false,
+            });
+
+            if (result?.error) {
                 toast.error(result.error || "Credenziali non valide");
                 form.reset();
+            } else if (result?.ok) {
+                // Successful login
+                toast.success("Login effettuato con successo!");
+                router.push("/manager");
+                router.refresh();
             }
         } catch (error) {
             console.error('Login error:', error);

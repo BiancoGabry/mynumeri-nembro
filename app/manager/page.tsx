@@ -1,16 +1,9 @@
 "use client"
 
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { ButtonGroup } from "@/components/ui/button-group";
-import { cn } from "@/lib/utils";
-import { FileText, Settings, Monitor, LogOut, Undo2, CheckCircle } from "lucide-react";
-import Head from "next/head";
-import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Header } from "@/app/manager/_components/header";
-import { set } from "zod";
-import OrdersGrid from "@/components/ui/orders-grid";
+import { useState } from "react";
+import { Header } from "@/components/manager/header";
+import OrdersGrid from "@/components/manager/orders-grid";
+import { PickedUpOrdersSheet } from "@/components/manager/picked-up-orders-sheet";
 
 export default function Manager() {
     const [confirmedOrders, setConfirmedOrders] = useState<Order[]>([{ id: '1', ticketNumber: 123, displayCode: 'A1' }]);
@@ -39,24 +32,11 @@ export default function Manager() {
                         actualSetter={setReadyOrders}
                         nextSetter={setPickedUpOrders}
                     >
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button variant="outline">Ordini ritirati</Button>
-                            </SheetTrigger>
-                            <SheetContent>
-                                <SheetHeader>
-                                    <SheetTitle className="text-2xl font-bold">Ordini ritirati</SheetTitle>
-                                    <SheetDescription>Elenco degli ordini già ritirati dai clienti</SheetDescription>
-                                </SheetHeader>
-                                <OrdersGrid
-                                    status="PICKED_UP"
-                                    className="rounded-none shadow-none outline-0"
-                                    orders={pickedUpOrders}
-                                    prevSetter={setReadyOrders}
-                                    actualSetter={setPickedUpOrders}
-                                ></OrdersGrid>
-                            </SheetContent>
-                        </Sheet>
+                        <PickedUpOrdersSheet
+                            pickedUpOrders={pickedUpOrders}
+                            setReadyOrders={setReadyOrders}
+                            setPickedUpOrders={setPickedUpOrders}
+                        />
                     </OrdersGrid>
                 </div>
             </main>

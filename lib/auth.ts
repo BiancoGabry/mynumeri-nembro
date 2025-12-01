@@ -1,106 +1,96 @@
-import NextAuth from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
+import type { NextAuthOptions, User } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { apiClient } from "./api-client";
+import { JWT } from "next-auth/jwt";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Credentials({
-      credentials: {
-        username: { label: 'Username', type: 'text' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          return null;
-        }
+// Access token expires in 15 minutes according to swagger docs
+const ACCESS_TOKEN_LIFETIME = 15 * 60 * 1000; // 15 minutes in milliseconds
 
-        try {
-          const response = await fetch(`${process.env.API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              username: credentials.username,
-              password: credentials.password,
-            }),
-          });
+export const authOptions: NextAuthOptions = {
+    providers: [
+        CredentialsProvider({
+            name: "Credentials",
+            credentials: {
+                username: { label: "Username", type: "text" },
+                password: { label: "Password", type: "password" },
+            },
+            async authorize(credentials): Promise<User | null> {
+                if (!credentials?.username || !credentials?.password) {
+                    throw new Error("Username e password sono obbligatori");
+                }
 
-          if (!response.ok) {
-            return null;
-          }
+                try {
+                    const response = await apiClient.login(
+                        credentials.username,
+                        credentials.password
+                    );
 
-          const data = await response.json();
+                    // Return user object that will be stored in JWT
+                    return {
+                        id: response.user.username, // NextAuth requires id field
+                        username: response.user.username,
+                        role: response.user.role,
+                        accessToken: response.accessToken,
+                    };
+                } catch (error) {
+                    console.error("Login error:", error);
+                    throw new Error(
+                        error instanceof Error ? error.message : "Errore durante il login"
+                    );
+                }
+            },
+        }),
+    ],
+    callbacks: {
+        async jwt({ token, user, trigger }): Promise<JWT> {
+            // Initial sign in
+            if (user) {
+                token.username = user.username;
+                token.role = user.role;
+                token.accessToken = user.accessToken;
+                token.accessTokenExpires = Date.now() + ACCESS_TOKEN_LIFETIME;
+                return token;
+            }
 
-          // Check if we have the expected data structure
-          if (!data.accessToken) {
-            return null;
-          }
+            // Return previous token if access token has not expired yet
+            if (Date.now() < (token.accessTokenExpires as number)) {
+                return token;
+            }
 
-          // Return user object with token
-          const user = {
-            id: String(data.user?.id || '1'),
-            name: data.user?.username || credentials.username as string,
-            email: data.user?.email || `${credentials.username}@mynumeri.local`,
-            token: data.accessToken, // Backend returns accessToken
-          };
+            // Access token has expired, try to refresh it
+            try {
+                const refreshedToken = await apiClient.refreshAccessToken();
+                return {
+                    ...token,
+                    accessToken: refreshedToken.accessToken,
+                    accessTokenExpires: Date.now() + ACCESS_TOKEN_LIFETIME,
+                };
+            } catch (error) {
+                console.error("Failed to refresh access token:", error);
+                // Return token with error flag to trigger re-authentication
+                return {
+                    ...token,
+                    error: "RefreshAccessTokenError",
+                };
+            }
+        },
+        async session({ session, token }) {
+            // Send properties to the client
+            session.user = {
+                username: token.username as string,
+                role: token.role as string,
+            };
+            session.accessToken = token.accessToken as string;
 
-          return user;
-        } catch (error) {
-          return null;
-        }
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user, account }) {
-      // On sign in, add token from backend
-      if (user && account) {
-        token.accessToken = user.token;
-        token.id = user.id;
-      }
-      return token;
+            return session;
+        },
     },
-    async session({ session, token }) {
-      // Add access token to session
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.accessToken = token.accessToken as string;
-      }
-      return session;
+    pages: {
+        signIn: "/", // Login page route
     },
-    async authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const isOnManager = nextUrl.pathname.startsWith('/manager');
-      const isOnImpostazioni = nextUrl.pathname.startsWith('/impostazioni');
-      const isOnLogin = nextUrl.pathname.startsWith('/login');
-
-      if (isOnManager || isOnImpostazioni) {
-        if (isLoggedIn) return true;
-        return false; // Redirect to login
-      }
-
-      if (isOnLogin && isLoggedIn) {
-        return Response.redirect(new URL('/manager', nextUrl));
-      }
-
-      return true;
+    session: {
+        strategy: "jwt",
+        maxAge: 7 * 24 * 60 * 60, // 7 days (matching refresh token lifetime)
     },
-  },
-  pages: {
-    signIn: '/login',
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
-  debug: false,
-});
+    secret: process.env.NEXTAUTH_SECRET,
+};

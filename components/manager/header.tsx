@@ -1,19 +1,53 @@
+"use client";
+
 import { Settings, FileText, Monitor, LogOut } from "lucide-react";
-import { Button } from "../../../components/ui/button";
-import { SheetTrigger } from "../../../components/ui/sheet";
+import { Button } from "../ui/button";
+import { SheetTrigger } from "../ui/sheet";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@/components/ui/textarea";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { signOut } from "next-auth/react";
+import { logout as logoutAction } from "@/actions/auth";
+import { toast } from "sonner";
+import { ButtonGroup } from "../ui/button-group";
+import { useRouter } from "next/navigation";
 
 export function Header() {
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        try {
+            // Call backend logout to revoke refresh token
+            await logoutAction();
+
+            // Then sign out from NextAuth
+            await signOut({ redirect: true, callbackUrl: "/" });
+
+            toast.success("Logout effettuato con successo");
+        } catch (error) {
+            console.error("Logout error:", error);
+            // Still try to sign out even if backend logout fails
+            await signOut({ redirect: true, callbackUrl: "/" });
+        }
+    };
+
     return (
-        <header className="border-b fixed top-0 z-10 flex h-16 w-full items-center justify-between bg-white px-4 shadow-sm">
-            <div className="w-full px-4 py-4">
-                <h1 className="text-2xl font-bold">MyNumeri - Manager</h1>
+        <header className="border-b fixed top-0 z-10 flex h-16 w-full items-center justify-between bg-card px-4 shadow-sm">
+            <div className="flex items-center gap-3">
+                <img
+                    src="/logo.svg"
+                    alt="Logo"
+                    className="mx-auto h-10 w-auto select-none"
+                />
+                <h1 className="text-2xl font-bold select-none">MyNumeri</h1>
             </div>
             <div className="absolute top-4 right-4 flex items-center gap-2">
-                <Button variant="outline" size="icon">
-                    <Settings className="h-4 w-4" />
-                </Button>
+                <ButtonGroup>
+                    <Button variant="outline" size="icon" onClick={() => router.push("/settings")}>
+                        <Settings className="h-4 w-4" />
+                    </Button>
+                    <ThemeToggle />
+                </ButtonGroup>
                 <Drawer>
                     <DrawerTrigger asChild>
                         <Button variant="outline">
@@ -34,12 +68,12 @@ export function Header() {
                             </DrawerHeader>
                             <Textarea
                                 id="notes-textarea"
-                                className="w-full min-h-[200px] px-3 py-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                className="w-full min-h-[200px] px-3 py-2 text-sm border rounded-md resize-none"
                                 placeholder="Es: Promozione del giorno, orari speciali, avvisi..."
                             />
                             <DrawerFooter>
                                 <div className="flex items-center gap-2 place-content-end">
-                                    <Button >Salva Avvisi</Button>
+                                    <Button>Salva Avvisi</Button>
                                     <DrawerClose asChild>
                                         <Button variant="outline">Annulla</Button>
                                     </DrawerClose>
@@ -48,17 +82,17 @@ export function Header() {
                         </div>
                     </DrawerContent>
                 </Drawer>
-                <Button variant="outline">
+                <Button variant="outline" className="bg-primary hover:bg-primary/80">
                     <a href="/display" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                         <Monitor className="h-4 w-4" />
                         Apri Display
                     </a>
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                 </Button>
             </div>
         </header>
-    )
+    );
 }

@@ -1,53 +1,70 @@
-'use server';
+"use server";
 
-import { signIn, signOut } from '@/lib/auth';
-import { AuthError } from 'next-auth';
+import { apiClient } from "@/lib/api-client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 /**
- * Login action
+ * Login action that validates credentials with the backend
+ * This wraps the authentication flow - actual auth is handled by NextAuth in the authorize callback
  */
 export async function login(username: string, password: string) {
-  try {
+    try {
+        // The actual login happens through NextAuth's credential provider
+        // We just need to validate and return result
+        // The client will call NextAuth's signIn directly
 
-    const result = await signIn('credentials', {
-      username,
-      password,
-      redirect: false,
-    });
+        // Validate inputs
+        if (!username || !password) {
+            return {
+                success: false,
+                error: "Username e password sono obbligatori",
+            };
+        }
 
-
-    // Check if login was successful
-    if (result?.error) {
-      console.error('SignIn error:', result.error);
-      return { success: false, error: 'Credenziali non valide' };
+        // Try to authenticate with backend directly to give better error messages
+        try {
+            await apiClient.login(username, password);
+            return {
+                success: true,
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : "Credenziali non valide",
+            };
+        }
+    } catch (error) {
+        console.error("Login action error:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Errore imprevisto",
+        };
     }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Login action error:', error);
-
-    if (error instanceof AuthError) {
-      console.error('AuthError type:', error.type);
-      console.error('AuthError message:', error.message);
-
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return { success: false, error: 'Credenziali non valide' };
-        case 'CallbackRouteError':
-          return { success: false, error: 'Errore di autenticazione' };
-        default:
-          return { success: false, error: 'Errore durante il login' };
-      }
-    }
-
-    return { success: false, error: 'Errore durante il login' };
-  }
 }
 
 /**
- * Logout action
+ * Logout action that revokes refresh token and clears session
  */
 export async function logout() {
-  await signOut({ redirect: false });
-  return { success: true };
+    try {
+        // First, revoke the refresh token on the backend
+        await apiClient.logout();
+    } catch (error) {
+        console.error("Backend logout error:", error);
+        // Continue even if backend logout fails
+    }
+
+    // Revalidate paths to clear cached data
+    revalidatePath("/");
+
+    return { success: true };
+}
+
+/**
+ * Get current session from server
+ */
+export async function getSession() {
+    return await getServerSession(authOptions);
 }
