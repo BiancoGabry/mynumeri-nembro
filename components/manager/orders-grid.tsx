@@ -10,17 +10,16 @@ interface OrdersGridProps {
     title?: string;
     children?: React.ReactNode;
     status?: Status;
-    prevSetter?: React.Dispatch<React.SetStateAction<Order[]>>;
-    actualSetter: React.Dispatch<React.SetStateAction<Order[]>>;
-    nextSetter?: React.Dispatch<React.SetStateAction<Order[]>>;
+    onPrev?: (order: Order) => void;
+    onNext?: (order: Order) => void;
 }
 
-export default function OrdersGrid({ className, orders, title, status, prevSetter, actualSetter, nextSetter, children }: OrdersGridProps) {
+export default function OrdersGrid({ className, orders, title, status, onPrev, onNext, children }: OrdersGridProps) {
     return (
-        <div className={cn("select-none h-full w-full rounded-xl outline-2 outline-secondary bg-card shadow-lg p-4", className)}>
+        <div className={cn("select-none h-full w-full rounded-xl outline-2 outline-secondary bg-card shadow-lg p-4 overflow-y-auto", className)}>
             {
                 title || children ?
-                    <div className="flex place-content-between items-center">
+                    <div className="flex place-content-between items-center sticky top-0 bg-card z-10 pb-2">
                         {
                             title ? <h2 className="select-none text-2xl font-bold mb-4">{title}</h2> : <></>
                         }
@@ -29,10 +28,12 @@ export default function OrdersGrid({ className, orders, title, status, prevSette
                     :
                     <></>
             }
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap items-start place-content-start">
                 {
                     orders.map((order) => (
-                        <OrderCard key={order.id} order={order} status={status} prevSetter={prevSetter} actualSetter={actualSetter} nextSetter={nextSetter} />
+                        <div key={order.id} className="min-w-max">
+                            <OrderCard order={order} status={status} onPrev={onPrev} onNext={onNext} />
+                        </div>
                     ))
                 }
             </div>
@@ -43,58 +44,57 @@ export default function OrdersGrid({ className, orders, title, status, prevSette
 interface OrderCardProps {
     order: Order;
     status?: Status;
-    prevSetter?: React.Dispatch<React.SetStateAction<Order[]>>;
-    actualSetter: React.Dispatch<React.SetStateAction<Order[]>>;
-    nextSetter?: React.Dispatch<React.SetStateAction<Order[]>>;
+    onPrev?: (order: Order) => void;
+    onNext?: (order: Order) => void;
 }
 
-function OrderCard({ order, status, prevSetter, actualSetter, nextSetter }: OrderCardProps) {
+function OrderCard({ order, status, onPrev, onNext }: OrderCardProps) {
     function addNext() {
-        if (nextSetter) {
-            actualSetter((prev) => prev.filter((o) => o.id !== order.id));
-            nextSetter((prev) => [...prev, order]);
+        if (onNext) {
+            onNext(order);
         }
     }
 
     function undoPrev() {
-        if (prevSetter) {
-            actualSetter((prev) => prev.filter((o) => o.id !== order.id));
-            prevSetter((prev) => [...prev, order]);
+        if (onPrev) {
+            onPrev(order);
         }
     }
+
+    const orderTitle = order.ticketNumber || order.displayCode;
 
     if (status === 'CONFIRMED') {
         return (
             <Button
-                key={order.id}
                 variant="outline"
                 size="lg"
                 onClick={addNext}
-                className="select-none h-15 text-3xl font-bold hover:bg-primary hover:text-primary-foreground transition-colors"
+                className="select-none h-16 w-24 text-3xl font-bold hover:bg-primary hover:text-primary-foreground transition-colors"
+                disabled={!onNext}
             >
-                {order.ticketNumber}
+                {orderTitle}
             </Button>
         )
     }
 
     if (status === 'COMPLETED') {
         return (
-            <ButtonGroup className="text-3xl font-bold">
+            <ButtonGroup className="text-3xl font-bold h-16 w-32 shadow-sm">
                 <Button
                     variant="outline"
-                    className="select-none h-15 text-3xl font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-colors"
+                    className="select-none h-full w-12 text-3xl font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-colors border-r"
                     onClick={undoPrev}
+                    disabled={!onPrev}
                 >
-                    <Undo2 className="h-7 w-7" />
+                    <Undo2 className="h-6 w-6" />
                 </Button>
                 <Button
                     variant="outline"
                     onClick={addNext}
-                    className="select-none h-15 text-3xl font-bold bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 transition-colors"
-                    disabled={!nextSetter}
+                    className="select-none h-full flex-1 text-3xl font-bold bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 transition-colors"
+                    disabled={!onNext}
                 >
-                    {order.ticketNumber}
-                    <CheckCircle className="h-8 w-8" />
+                    {orderTitle}
                 </Button>
             </ButtonGroup>
         )
@@ -102,22 +102,21 @@ function OrderCard({ order, status, prevSetter, actualSetter, nextSetter }: Orde
 
     if (status === 'PICKED_UP') {
         return (
-            <ButtonGroup className="text-3xl font-bold">
+            <ButtonGroup className="text-3xl font-bold h-16 w-32 shadow-sm">
                 <Button
                     variant="outline"
-                    className="select-none h-15 text-3xl font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-colors"
+                    className="select-none h-full w-12 text-3xl font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-colors border-r"
                     onClick={undoPrev}
+                    disabled={!onPrev}
                 >
-                    <Undo2 className="h-7 w-7" />
+                    <Undo2 className="h-6 w-6" />
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={addNext}
-                    className="select-none h-15 text-3xl font-bold bg-green-500 text-white dark:bg-green-600 transition-colors"
-                    disabled={!nextSetter}
+                    className="select-none h-full flex-1 text-3xl font-bold bg-green-500 text-white dark:bg-green-600 transition-colors opacity-70 cursor-not-allowed"
+                    disabled
                 >
-                    {order.ticketNumber}
-                    <CheckCircle className="h-8 w-8" />
+                    {orderTitle}
                 </Button>
             </ButtonGroup>
         )
@@ -127,7 +126,9 @@ function OrderCard({ order, status, prevSetter, actualSetter, nextSetter }: Orde
         <Card
             key={order.id}
         >
-            <CardContent><p className="text-8xl font-bold">{order.ticketNumber}</p></CardContent>
+            <CardContent className="p-4 flex items-center justify-center h-full">
+                <p className="text-8xl font-bold m-0">{orderTitle}</p>
+            </CardContent>
         </Card>
     )
 }

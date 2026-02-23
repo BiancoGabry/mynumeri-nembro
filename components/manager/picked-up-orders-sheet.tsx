@@ -6,11 +6,10 @@ import OrdersGrid from "@/components/manager/orders-grid";
 
 interface PickedUpOrdersSheetProps {
     pickedUpOrders: Order[];
-    setReadyOrders: React.Dispatch<React.SetStateAction<Order[]>>;
-    setPickedUpOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+    onPrev?: (order: Order) => void;
 }
 
-export function PickedUpOrdersSheet({ pickedUpOrders, setReadyOrders, setPickedUpOrders }: PickedUpOrdersSheetProps) {
+export function PickedUpOrdersSheet({ pickedUpOrders, onPrev }: PickedUpOrdersSheetProps) {
     return (
         <Sheet>
             <SheetTrigger asChild>
@@ -23,10 +22,9 @@ export function PickedUpOrdersSheet({ pickedUpOrders, setReadyOrders, setPickedU
                 </SheetHeader>
                 <OrdersGrid
                     status="PICKED_UP"
-                    className="rounded-none bg-background shadow-none outline-0"
+                    className="rounded-none bg-background shadow-none outline-0 h-[calc(100vh-8rem)] mt-4 px-4 pb-4"
                     orders={pickedUpOrders}
-                    prevSetter={setReadyOrders}
-                    actualSetter={setPickedUpOrders}
+                    onPrev={onPrev}
                 />
             </SheetContent>
         </Sheet>

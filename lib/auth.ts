@@ -52,6 +52,11 @@ export const authOptions: NextAuthOptions = {
                 return token;
             }
 
+            // If we already failed to refresh previously, don't try again and spam the backend
+            if (token.error === "RefreshAccessTokenError") {
+                return token;
+            }
+
             // Return previous token if access token has not expired yet
             if (Date.now() < (token.accessTokenExpires as number)) {
                 return token;
@@ -64,6 +69,7 @@ export const authOptions: NextAuthOptions = {
                     ...token,
                     accessToken: refreshedToken.accessToken,
                     accessTokenExpires: Date.now() + ACCESS_TOKEN_LIFETIME,
+                    error: undefined
                 };
             } catch (error) {
                 console.error("Failed to refresh access token:", error);
@@ -81,6 +87,7 @@ export const authOptions: NextAuthOptions = {
                 role: token.role as string,
             };
             session.accessToken = token.accessToken as string;
+            session.error = token.error as string | undefined;
 
             return session;
         },
