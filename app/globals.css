@@ -151,3 +151,13 @@
     transform: translateY(-6px) scale(0.98);
   }
 }
+
+@keyframes progress-bar-fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

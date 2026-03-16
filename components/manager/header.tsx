@@ -2,7 +2,6 @@
 
 import { Settings, FileText, Monitor, LogOut } from "lucide-react";
 import { Button } from "../ui/button";
-import { SheetTrigger } from "../ui/sheet";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -11,9 +10,31 @@ import { logout as logoutAction } from "@/actions/auth";
 import { toast } from "sonner";
 import { ButtonGroup } from "../ui/button-group";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export function Header() {
     const router = useRouter();
+
+    const [noticeText, setNoticeText] = useState("");
+
+    useEffect(() => {
+        const stored = localStorage.getItem("display-announcement");
+        if (stored) setNoticeText(stored);
+    }, []);
+
+    const saveAnnouncement = async () => {
+        localStorage.setItem("display-announcement", noticeText);
+        try {
+            await fetch("/api/announcement", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ announcement: noticeText }),
+            });
+            toast.success("Avviso salvato e inviato al display");
+        } catch {
+            toast.error("Errore durante il salvataggio dell'avviso");
+        }
+    };
 
     const handleLogout = async () => {
         try {
@@ -70,10 +91,14 @@ export function Header() {
                                 id="notes-textarea"
                                 className="w-full min-h-[200px] px-3 py-2 text-sm border rounded-md resize-none"
                                 placeholder="Es: Promozione del giorno, orari speciali, avvisi..."
+                                value={noticeText}
+                                onChange={(e) => setNoticeText(e.target.value)}
                             />
                             <DrawerFooter>
                                 <div className="flex items-center gap-2 place-content-end">
-                                    <Button>Salva Avvisi</Button>
+                                    <DrawerClose asChild>
+                                        <Button onClick={saveAnnouncement}>Salva Avvisi</Button>
+                                    </DrawerClose>
                                     <DrawerClose asChild>
                                         <Button variant="outline">Annulla</Button>
                                     </DrawerClose>

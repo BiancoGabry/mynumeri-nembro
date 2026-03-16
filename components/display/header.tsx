@@ -1,16 +1,58 @@
-import { UtensilsCrossed } from "lucide-react"
+import { Logo } from "../icons/logo";
 
-export function Header() {
+const PAGE_INTERVAL_MS = 10000;
+
+interface HeaderProps {
+    pageKey: number;
+    showProgress: boolean;
+    currentPage: number;
+    totalPages: number;
+}
+
+function LogoIcon() {
     return (
-        <header className="border-b fixed top-0 z-10 flex h-16 w-full items-center justify-between bg-primary px-4 shadow-sm">
-            <div className="flex items-center gap-3">
-                <img
-                    src="/logo.svg"
-                    alt="Logo"
-                    className="mx-auto h-10 w-auto bg-white rounded select-none"
-                />
-                <h1 className="text-2xl text-black font-bold select-none">Ordini pronti - </h1>
+        <Logo width={60} height={60} className="text-black" bgFill="fill-black" itemFill="fill-yellow-400" aria-hidden="true" > </Logo>
+    );
+}
+
+export function Header({ pageKey, showProgress, currentPage, totalPages }: HeaderProps) {
+    return (
+        <header className="z-10 flex flex-col w-full bg-amber-400 shadow-md border-b-2 border-amber-500">
+            <div className="flex items-center justify-between px-6" style={{ minHeight: "72px" }}>
+                <div className="flex items-center gap-3">
+                    <LogoIcon />
+                    <h1 className="text-3xl text-black font-black tracking-tight select-none">
+                        Ordini pronti
+                    </h1>
+                </div>
+
+                {showProgress && (
+                    <div className="flex items-center gap-2 bg-black/10 rounded-xl px-5 py-2">
+                        <span className="text-black font-black text-2xl select-none tabular-nums leading-none">
+                            {currentPage + 1}
+                        </span>
+                        <span className="text-black/50 font-bold text-base select-none leading-none">
+                            /
+                        </span>
+                        <span className="text-black font-black text-2xl select-none tabular-nums leading-none">
+                            {totalPages}
+                        </span>
+                    </div>
+                )}
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-2.5 w-full bg-black/10">
+                {showProgress && (
+                    <div
+                        key={pageKey}
+                        className="h-full bg-black/90 rounded-r-full origin-left"
+                        style={{
+                            animation: `progress-bar-fill ${PAGE_INTERVAL_MS}ms linear forwards`,
+                        }}
+                    />
+                )}
             </div>
         </header>
-    )
+    );
 }
