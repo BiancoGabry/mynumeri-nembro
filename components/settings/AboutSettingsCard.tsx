@@ -19,13 +19,6 @@ export function AboutSettingsCard() {
                 <div className="text-sm ">
                     Per una migliore visualizzazione è consigliato usare la modalità fullscreen (F11)
                 </div>
-                <Separator />
-                <div className="space-y-2">
-                    <Label>Licenza</Label>
-                    <div className="text-sm text-muted-foreground">
-                        © 2025 MyNumeri. Tutti i diritti riservati.
-                    </div>
-                </div>
             </CardContent>
         </Card>
     );

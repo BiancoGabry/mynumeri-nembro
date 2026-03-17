@@ -1,8 +1,27 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Settings } from 'lucide-react';
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Settings } from "lucide-react";
+
+export const EVENT_NAME_KEY = "display-event-name";
 
 export function GeneralSettingsCard() {
+    const [eventName, setEventName] = useState("");
+
+    useEffect(() => {
+        const stored = localStorage.getItem(EVENT_NAME_KEY);
+        if (stored) setEventName(stored);
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setEventName(value);
+        localStorage.setItem(EVENT_NAME_KEY, value);
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -10,18 +29,23 @@ export function GeneralSettingsCard() {
                     <Settings className="h-5 w-5 text-amber-600" />
                     <CardTitle>Generali</CardTitle>
                 </div>
-                <CardDescription className='select-none'>
+                <CardDescription className="select-none">
                     Configura le impostazioni generali dell'interfaccia cassa
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                        <Label>Inserisci il nome della festa da visualizzare nel display</Label>
-                        <div className="text-sm text-muted-foreground select-none">
-                            Inserisci il nome della festa da visualizzare nel display
-                        </div>
+                <div className="space-y-1.5">
+                    <Label htmlFor="event-name">Nome della sagra / festa</Label>
+                    <div className="text-sm text-muted-foreground select-none">
+                        Viene mostrato nell'header del display accanto al titolo
                     </div>
+                    <Input
+                        id="event-name"
+                        placeholder="es. Sagra della Porchetta 2026"
+                        value={eventName}
+                        onChange={handleChange}
+                        className="max-w-sm"
+                    />
                 </div>
             </CardContent>
         </Card>

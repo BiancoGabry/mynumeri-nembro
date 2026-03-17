@@ -1,14 +1,20 @@
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun, Palette } from 'lucide-react';
 
-interface AppearanceSettingsCardProps {
-    theme: string | undefined;
-    setTheme: (theme: string) => void;
-}
+export function AppearanceSettingsCard() {
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
 
-export function AppearanceSettingsCard({ theme, setTheme }: AppearanceSettingsCardProps) {
+    useEffect(() => setMounted(true), []);
+
+    // Before mount, render neutral variants to match SSR output
+    const lightVariant = mounted && theme === 'light' ? 'default' : 'outline';
+    const darkVariant = mounted && theme === 'dark' ? 'default' : 'outline';
+
     return (
         <Card>
             <CardHeader>
@@ -30,7 +36,7 @@ export function AppearanceSettingsCard({ theme, setTheme }: AppearanceSettingsCa
                     </div>
                     <div className="flex gap-2">
                         <Button
-                            variant={theme === 'light' ? 'default' : 'outline'}
+                            variant={lightVariant}
                             size="sm"
                             className='select-none'
                             onClick={() => setTheme('light')}
@@ -39,7 +45,7 @@ export function AppearanceSettingsCard({ theme, setTheme }: AppearanceSettingsCa
                             Chiaro
                         </Button>
                         <Button
-                            variant={theme === 'dark' ? 'default' : 'outline'}
+                            variant={darkVariant}
                             size="sm"
                             className='select-none'
                             onClick={() => setTheme('dark')}
