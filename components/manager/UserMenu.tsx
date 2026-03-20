@@ -35,7 +35,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="cursor-pointer gap-1 focus-visible:ring-0">
+                <Button className="h-8 px-2 bg-transparent hover:bg-transparent focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 cursor-pointer">
                     <UserAvatar initials={initials} />
                     <ChevronDownIcon className="h-3 w-3 text-muted-foreground" />
                 </Button>
