@@ -155,7 +155,7 @@ export default function Manager() {
 
     return (
         <div className="h-screen w-full flex flex-col overflow-hidden">
-            <Header />
+            <Header pickedUpOrders={pickedUpOrders} onPickupPrev={handlePickupToComplete} />
             <main className="flex-1 w-full overflow-hidden">
                 <div className="h-full w-full flex flex-col md:grid md:grid-cols-3 gap-3 p-3 pt-20 md:pt-24 max-w-[1920px] mx-auto">
                     <OrdersGrid
@@ -173,10 +173,12 @@ export default function Manager() {
                         onPrev={handleCompleteToConfirm}
                         onNext={handleCompleteToPickup}
                     >
-                        <PickedUpOrdersSheet
-                            pickedUpOrders={pickedUpOrders}
-                            onPrev={handlePickupToComplete}
-                        />
+                        <div className="hidden md:block">
+                            <PickedUpOrdersSheet
+                                pickedUpOrders={pickedUpOrders}
+                                onPrev={handlePickupToComplete}
+                            />
+                        </div>
                     </OrdersGrid>
                 </div>
             </main>

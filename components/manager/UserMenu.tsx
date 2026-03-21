@@ -9,7 +9,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDownIcon, LogOutIcon, Settings, Sun, Moon } from "lucide-react"
+import { ChevronDownIcon, LogOutIcon, Settings, Sun, Moon, FileText } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -20,6 +20,7 @@ interface UserMenuProps {
         role: string
     }
     onLogout: () => void
+    onOpenAvvisi?: () => void
 }
 
 function UserAvatar({ initials, size = 8 }: { initials: string; size?: number }) {
@@ -32,7 +33,7 @@ function UserAvatar({ initials, size = 8 }: { initials: string; size?: number })
     )
 }
 
-export function UserMenu({ user, onLogout }: UserMenuProps) {
+export function UserMenu({ user, onLogout, onOpenAvvisi }: UserMenuProps) {
     const initials = user.username.slice(0, 2).toUpperCase()
     const router = useRouter()
     const { theme, setTheme } = useTheme()
@@ -73,6 +74,15 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
                     >
                         {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                         {theme === "dark" ? "Tema chiaro" : "Tema scuro"}
+                    </DropdownMenuItem>
+                )}
+                {onOpenAvvisi && (
+                    <DropdownMenuItem
+                        className="md:hidden cursor-pointer"
+                        onClick={onOpenAvvisi}
+                    >
+                        <FileText className="h-4 w-4" />
+                        Avvisi Display
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />

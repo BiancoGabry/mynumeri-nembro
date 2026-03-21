@@ -12,13 +12,20 @@ import { ButtonGroup } from "../ui/button-group";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { UserMenu } from "@/components/manager/UserMenu";
+import { PickedUpOrdersSheet } from "@/components/manager/picked-up-orders-sheet";
 
-export function Header() {
+interface HeaderProps {
+    pickedUpOrders?: Order[];
+    onPickupPrev?: (order: Order) => void;
+}
+
+export function Header({ pickedUpOrders, onPickupPrev }: HeaderProps = {}) {
     const router = useRouter();
     const { data: session } = useSession();
 
     const [noticeText, setNoticeText] = useState("");
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [avvisiOpen, setAvvisiOpen] = useState(false);
 
     useEffect(() => {
         fetch("/api/display-config")
@@ -98,9 +105,14 @@ export function Header() {
                         }
                     </Button>
                 </ButtonGroup>
-                <Drawer>
+                {pickedUpOrders !== undefined && (
+                    <div className="md:hidden">
+                        <PickedUpOrdersSheet pickedUpOrders={pickedUpOrders} onPrev={onPickupPrev} />
+                    </div>
+                )}
+                <Drawer open={avvisiOpen} onOpenChange={setAvvisiOpen}>
                     <DrawerTrigger asChild>
-                        <Button variant="outline">
+                        <Button variant="outline" className="hidden md:flex">
                             <FileText className="h-4 w-4 mr-2" />
                             Avvisi Display
                         </Button>
@@ -150,7 +162,7 @@ export function Header() {
                     </a>
                 </Button>
                 {session?.user && (
-                    <UserMenu user={session.user} onLogout={handleLogout} />
+                    <UserMenu user={session.user} onLogout={handleLogout} onOpenAvvisi={() => setAvvisiOpen(true)} />
                 )}
             </div>
         </header>
