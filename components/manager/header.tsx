@@ -21,8 +21,20 @@ export function Header() {
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     useEffect(() => {
-        const stored = localStorage.getItem("display-announcement");
-        if (stored) setNoticeText(stored);
+        fetch("/api/display-config")
+            .then((res) => res.ok ? res.json() : null)
+            .then((cfg) => {
+                if (cfg?.announcement !== undefined) {
+                    setNoticeText(cfg.announcement);
+                } else {
+                    const stored = localStorage.getItem("display-announcement");
+                    if (stored) setNoticeText(stored);
+                }
+            })
+            .catch(() => {
+                const stored = localStorage.getItem("display-announcement");
+                if (stored) setNoticeText(stored);
+            });
     }, []);
 
     useEffect(() => {
@@ -40,10 +52,9 @@ export function Header() {
     };
 
     const saveAnnouncement = async () => {
-        localStorage.setItem("display-announcement", noticeText);
         try {
-            await fetch("/api/announcement", {
-                method: "POST",
+            await fetch("/api/display-config", {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ announcement: noticeText }),
             });

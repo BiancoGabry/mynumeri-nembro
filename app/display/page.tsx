@@ -252,22 +252,62 @@ export default function Display() {
     );
 
     // ------------------------------------------------------------------
-    // Read event name from localStorage on mount
+    // Fetch display config on mount (eventName, displayMode, announcement)
     // ------------------------------------------------------------------
     useEffect(() => {
-        const stored = localStorage.getItem(EVENT_NAME_KEY);
-        if (stored) setEventName(stored);
+        fetch("/api/display-config")
+            .then((res) => res.ok ? res.json() : null)
+            .then((cfg) => {
+                if (!cfg) {
+                    const storedName = localStorage.getItem(EVENT_NAME_KEY);
+                    if (storedName) setEventName(storedName);
+                    const storedMode = localStorage.getItem(DISPLAY_MODE_KEY) as DisplayMode | null;
+                    if (storedMode && ["ready", "preparing", "hybrid"].includes(storedMode)) {
+                        setDisplayMode(storedMode);
+                        displayModeRef.current = storedMode;
+                    }
+                    return;
+                }
+                if (cfg.eventName !== undefined) setEventName(cfg.eventName);
+                const mode = cfg.displayMode as DisplayMode;
+                if (mode && ["ready", "preparing", "hybrid"].includes(mode)) {
+                    setDisplayMode(mode);
+                    displayModeRef.current = mode;
+                }
+                if (typeof cfg.announcement === "string") setAnnouncement(cfg.announcement);
+            })
+            .catch(() => {
+                const storedName = localStorage.getItem(EVENT_NAME_KEY);
+                if (storedName) setEventName(storedName);
+                const storedMode = localStorage.getItem(DISPLAY_MODE_KEY) as DisplayMode | null;
+                if (storedMode && ["ready", "preparing", "hybrid"].includes(storedMode)) {
+                    setDisplayMode(storedMode);
+                    displayModeRef.current = storedMode;
+                }
+            });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ------------------------------------------------------------------
-    // Read display mode from localStorage on mount
+    // SSE — display config live updates (eventName, displayMode)
     // ------------------------------------------------------------------
     useEffect(() => {
-        const stored = localStorage.getItem(DISPLAY_MODE_KEY) as DisplayMode | null;
-        if (stored && ["ready", "preparing", "hybrid"].includes(stored)) {
-            setDisplayMode(stored);
-            displayModeRef.current = stored;
-        }
+        const es = new EventSource("/api/display-config/events");
+
+        es.onmessage = (event) => {
+            try {
+                const cfg = JSON.parse(event.data);
+                if (cfg.eventName !== undefined) setEventName(cfg.eventName);
+                const mode = cfg.displayMode as DisplayMode;
+                if (mode && ["ready", "preparing", "hybrid"].includes(mode)) {
+                    setDisplayMode(mode);
+                    displayModeRef.current = mode;
+                }
+            } catch { /* ignore parse errors */ }
+        };
+
+        return () => es.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { getAnnouncement, setAnnouncement } from "@/lib/announcement-store";
+import { getAnnouncement, setAnnouncement } from "@/lib/display-config-store";
 
 export async function GET() {
     return Response.json({ announcement: getAnnouncement() });

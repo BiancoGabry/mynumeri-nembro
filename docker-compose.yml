@@ -12,8 +12,13 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+    volumes:
+      - mynumeri_data:/app/data
     networks:
       - mysagra_default
+
+volumes:
+  mynumeri_data:
 
 networks:
   mysagra_default:

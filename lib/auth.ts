@@ -71,4 +71,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         strategy: "jwt",
         maxAge: 6 * 60 * 60,
     },
+    trustHost: true,
 });

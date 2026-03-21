@@ -4,23 +4,64 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Settings } from "lucide-react";
+import { toast } from "sonner";
 
 export const EVENT_NAME_KEY = "display-event-name";
 
 export function GeneralSettingsCard() {
     const [eventName, setEventName] = useState("");
+    const [savedEventName, setSavedEventName] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        const stored = localStorage.getItem(EVENT_NAME_KEY);
-        if (stored) setEventName(stored);
+        fetch("/api/display-config")
+            .then((res) => res.ok ? res.json() : null)
+            .then((cfg) => {
+                if (cfg?.eventName !== undefined) {
+                    setEventName(cfg.eventName);
+                    setSavedEventName(cfg.eventName);
+                    localStorage.setItem(EVENT_NAME_KEY, cfg.eventName);
+                } else {
+                    const stored = localStorage.getItem(EVENT_NAME_KEY);
+                    if (stored) {
+                        setEventName(stored);
+                        setSavedEventName(stored);
+                    }
+                }
+            })
+            .catch(() => {
+                const stored = localStorage.getItem(EVENT_NAME_KEY);
+                if (stored) {
+                    setEventName(stored);
+                    setSavedEventName(stored);
+                }
+            })
+            .finally(() => setIsLoading(false));
     }, []);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setEventName(value);
-        localStorage.setItem(EVENT_NAME_KEY, value);
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await fetch("/api/display-config", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ eventName }),
+            });
+            setSavedEventName(eventName);
+            localStorage.setItem(EVENT_NAME_KEY, eventName);
+            toast.success("Nome evento salvato");
+        } catch {
+            toast.error("Errore durante il salvataggio");
+        } finally {
+            setIsSaving(false);
+        }
     };
+
+    const hasChanges = eventName !== savedEventName;
 
     return (
         <Card>
@@ -41,13 +82,22 @@ export function GeneralSettingsCard() {
                             Viene mostrato nell'header del display accanto al titolo
                         </div>
                     </div>
-                    <Input
-                        id="event-name"
-                        placeholder="es. Sagra 2026"
-                        value={eventName}
-                        onChange={handleChange}
-                        className="w-full md:max-w-sm"
-                    />
+                    {isLoading ? (
+                        <Skeleton className="h-9 w-full md:max-w-sm rounded-md" />
+                    ) : (
+                        <Input
+                            id="event-name"
+                            placeholder="es. Sagra 2026"
+                            value={eventName}
+                            onChange={(e) => setEventName(e.target.value)}
+                            className="w-full md:max-w-sm"
+                        />
+                    )}
+                </div>
+                <div className="flex justify-end">
+                    <Button onClick={handleSave} disabled={!hasChanges || isSaving || isLoading}>
+                        {isSaving ? "Salvataggio..." : "Salva"}
+                    </Button>
                 </div>
             </CardContent>
         </Card>

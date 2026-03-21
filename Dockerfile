@@ -45,12 +45,17 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Directory per la persistenza di display-config.json
+RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+
 USER nextjs
 
 EXPOSE 3033
 
-ENV PORT 3033
-# set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3033
+ENV HOSTNAME="0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED=1
+
+VOLUME ["/app/data"]
 
 CMD ["node", "server.js"]
