@@ -128,7 +128,7 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
             if (newOrders.length === 0 && base.length === prev.length) return prev;
             return [...base, ...newOrders];
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orders, cardsPerPage, immediateRemoval]);
 
     // Page cycling
@@ -238,6 +238,11 @@ export default function Display() {
     const [announcement, setAnnouncement] = useState("");
     const [eventName, setEventName] = useState("");
 
+    // Full-screen overlay queue for new orders
+    const [fsQueue, setFsQueue] = useState<ReadyOrder[]>([]);
+    const [currentFsOrder, setCurrentFsOrder] = useState<ReadyOrder | null>(null);
+    const [fsExiting, setFsExiting] = useState(false);
+
     // The active orders list for single-mode pagination
     const activeOrders = displayMode === "preparing" ? prepOrders : readyOrders;
 
@@ -285,7 +290,7 @@ export default function Display() {
                     displayModeRef.current = storedMode;
                 }
             });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ------------------------------------------------------------------
@@ -307,7 +312,7 @@ export default function Display() {
         };
 
         return () => es.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ------------------------------------------------------------------
@@ -326,8 +331,8 @@ export default function Display() {
                     const orders: Order[] = json.data || json.orders || json || [];
                     const projected: ReadyOrder[] = Array.isArray(orders)
                         ? orders.sort(sortByDate).map(({ id, ticketNumber, displayCode, status }) => ({
-                              id, ticketNumber, displayCode, status,
-                          }))
+                            id, ticketNumber, displayCode, status,
+                        }))
                         : [];
                     setReadyOrders(projected);
                 }
@@ -340,8 +345,8 @@ export default function Display() {
                     const orders: Order[] = json.data || json.orders || json || [];
                     const projected: ReadyOrder[] = Array.isArray(orders)
                         ? orders.sort(sortByDate).map(({ id, ticketNumber, displayCode, status }) => ({
-                              id, ticketNumber, displayCode, status,
-                          }))
+                            id, ticketNumber, displayCode, status,
+                        }))
                         : [];
                     setPrepOrders(projected);
                 }
@@ -369,6 +374,14 @@ export default function Display() {
                     return [...prev, data];
                 });
             }
+
+            // Enqueue for full-screen in preparing mode
+            if (mode === "preparing") {
+                setFsQueue((q) => {
+                    if (q.find((o) => String(o.id) === String(data.id))) return q;
+                    return [...q, data];
+                });
+            }
         });
 
         es.addEventListener("order-status-update", (event: MessageEvent) => {
@@ -381,6 +394,11 @@ export default function Display() {
                     setReadyOrders((prev) => {
                         if (prev.find((o) => String(o.id) === String(data.id))) return prev;
                         return [...prev, data];
+                    });
+                    // Enqueue for full-screen overlay
+                    setFsQueue((q) => {
+                        if (q.find((o) => String(o.id) === String(data.id))) return q;
+                        return [...q, data];
                     });
                 } else {
                     setReadyOrders((prev) => prev.filter((o) => String(o.id) !== String(data.id)));
@@ -420,6 +438,27 @@ export default function Display() {
     }, []);
 
     // ------------------------------------------------------------------
+    // Full-screen overlay queue processing
+    // ------------------------------------------------------------------
+    useEffect(() => {
+        if (currentFsOrder || fsQueue.length === 0) return;
+
+        const [next, ...rest] = fsQueue;
+        setFsQueue(rest);
+        setCurrentFsOrder(next);
+        setFsExiting(false);
+
+        // Start exit animation at 3.5s, clear at 4s
+        const exitTimer = setTimeout(() => setFsExiting(true), 3500);
+        const clearTimer = setTimeout(() => setCurrentFsOrder(null), 4000);
+
+        return () => {
+            clearTimeout(exitTimer);
+            clearTimeout(clearTimer);
+        };
+    }, [currentFsOrder, fsQueue]);
+
+    // ------------------------------------------------------------------
     // Single-mode: sync displayedOrders with active list
     // ------------------------------------------------------------------
     useEffect(() => {
@@ -441,7 +480,7 @@ export default function Display() {
             if (newOrders.length === 0) return prev;
             return [...prev, ...newOrders];
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeOrders, displayMode]);
 
     // ------------------------------------------------------------------
@@ -538,6 +577,34 @@ export default function Display() {
             )}
 
             <Footer announcement={announcement} />
+
+            {/* Full-screen new order overlay */}
+            {currentFsOrder && (
+                <div
+                    className={`fixed inset-0 z-50 flex items-center justify-center ${fsExiting ? "fullscreen-overlay-backdrop--exit" : "fullscreen-overlay-backdrop"
+                        }`}
+                    style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
+                >
+                    <div
+                        className={`flex flex-col items-center justify-center rounded-3xl bg-white px-20 py-16 ${fsExiting ? "fullscreen-overlay-card--exit" : "fullscreen-overlay-card"
+                            }`}
+                        style={{
+                            minWidth: "min(80vw, 700px)",
+                            minHeight: "min(60vh, 500px)",
+                        }}
+                    >
+                        <p className="text-3xl font-bold text-gray-500 uppercase tracking-widest mb-4 select-none">
+                            Nuovo Ordine
+                        </p>
+                        <p
+                            className="font-black text-black select-none leading-none"
+                            style={{ fontSize: "clamp(6rem, 15vw, 16rem)" }}
+                        >
+                            {currentFsOrder.displayCode}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
