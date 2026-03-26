@@ -438,25 +438,26 @@ export default function Display() {
     }, []);
 
     // ------------------------------------------------------------------
-    // Full-screen overlay queue processing
+    // Full-screen overlay: pop from queue when idle
     // ------------------------------------------------------------------
     useEffect(() => {
         if (currentFsOrder || fsQueue.length === 0) return;
-
         const [next, ...rest] = fsQueue;
         setFsQueue(rest);
         setCurrentFsOrder(next);
         setFsExiting(false);
+    }, [currentFsOrder, fsQueue]);
 
-        // Start exit animation at 3.5s, clear at 4s
+    // Full-screen overlay: auto-dismiss timer (runs only when currentFsOrder changes to non-null)
+    useEffect(() => {
+        if (!currentFsOrder) return;
         const exitTimer = setTimeout(() => setFsExiting(true), 3500);
         const clearTimer = setTimeout(() => setCurrentFsOrder(null), 4000);
-
         return () => {
             clearTimeout(exitTimer);
             clearTimeout(clearTimer);
         };
-    }, [currentFsOrder, fsQueue]);
+    }, [currentFsOrder]);
 
     // ------------------------------------------------------------------
     // Single-mode: sync displayedOrders with active list
@@ -586,19 +587,21 @@ export default function Display() {
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
                 >
                     <div
-                        className={`flex flex-col items-center justify-center rounded-3xl bg-white px-20 py-16 ${fsExiting ? "fullscreen-overlay-card--exit" : "fullscreen-overlay-card"
+                        className={`flex flex-col items-center justify-center rounded-[2rem] bg-white px-24 py-20 ${fsExiting ? "fullscreen-overlay-card--exit" : "fullscreen-overlay-card"
                             }`}
                         style={{
-                            minWidth: "min(80vw, 700px)",
-                            minHeight: "min(60vh, 500px)",
+                            minWidth: "min(88vw, 900px)",
+                            minHeight: "min(70vh, 600px)",
                         }}
                     >
-                        <p className="text-3xl font-bold text-gray-500 uppercase tracking-widest mb-4 select-none">
-                            Nuovo Ordine
+                        <p className="text-4xl font-bold text-gray-500 uppercase tracking-widest mb-6 select-none">
+                            {currentFsOrder.status === "COMPLETED"
+                                ? "Ordine pronto codice:"
+                                : "Stiamo preparando l'ordine:"}
                         </p>
                         <p
                             className="font-black text-black select-none leading-none"
-                            style={{ fontSize: "clamp(6rem, 15vw, 16rem)" }}
+                            style={{ fontSize: "clamp(8rem, 18vw, 20rem)" }}
                         >
                             {currentFsOrder.displayCode}
                         </p>
