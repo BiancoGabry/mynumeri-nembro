@@ -150,8 +150,12 @@ export function Header({ pickedUpOrders, onPickupPrev }: HeaderProps = {}) {
                                     className="w-full min-h-[200px] px-3 py-2 text-sm border rounded-md resize-none"
                                     placeholder={t("manager.noticesPlaceholder")}
                                     value={noticeText}
+                                    maxLength={500}
                                     onChange={(e) => setNoticeText(e.target.value)}
                                 />
+                                <p className={`text-xs mt-1 text-right ${noticeText.length >= 450 ? "text-destructive" : "text-muted-foreground"}`}>
+                                    {500 - noticeText.length} / 500
+                                </p>
                             </div>
                             <DrawerFooter>
                                 <div className="flex items-center gap-2 justify-between">
