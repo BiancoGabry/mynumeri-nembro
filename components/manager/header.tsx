@@ -154,7 +154,7 @@ export function Header({ pickedUpOrders, onPickupPrev }: HeaderProps = {}) {
                                     onChange={(e) => setNoticeText(e.target.value)}
                                 />
                                 <p className={`text-xs mt-1 text-right ${noticeText.length >= 450 ? "text-destructive" : "text-muted-foreground"}`}>
-                                    {500 - noticeText.length} / 500
+                                    {noticeText.length} / 500
                                 </p>
                             </div>
                             <DrawerFooter>
