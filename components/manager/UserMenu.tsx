@@ -15,7 +15,7 @@ import {
     DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu"
 import { ChevronDownIcon, LogOutIcon, Settings, Sun, Moon, FileText, Languages } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useTheme } from "@teispace/next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
