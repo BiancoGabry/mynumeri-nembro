@@ -1,7 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider } from '@teispace/next-themes';
 import { Toaster } from "sonner";
 import { I18nProvider } from "@/lib/i18n/I18nProvider";
 

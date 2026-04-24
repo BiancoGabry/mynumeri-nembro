@@ -87,13 +87,19 @@ export function GeneralSettingsCard() {
                     {isLoading ? (
                         <Skeleton className="h-9 w-full md:max-w-sm rounded-md" />
                     ) : (
-                        <Input
-                            id="event-name"
-                            placeholder={t("settings.eventNamePlaceholder")}
-                            value={eventName}
-                            onChange={(e) => setEventName(e.target.value)}
-                            className="w-full md:max-w-sm"
-                        />
+                        <div className="flex flex-col w-full md:max-w-sm">
+                            <Input
+                                id="event-name"
+                                placeholder={t("settings.eventNamePlaceholder")}
+                                value={eventName}
+                                maxLength={100}
+                                onChange={(e) => setEventName(e.target.value)}
+                                className="w-full"
+                            />
+                            <p className={`text-xs mt-1 ${eventName.length >= 85 ? "text-destructive" : "text-muted-foreground"}`}>
+                                {eventName.length} / 100
+                            </p>
+                        </div>
                     )}
                 </div>
                 <div className="flex justify-end">

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LoginForm } from "@/components/login/login-form";
-import { useTheme } from 'next-themes';
+import { useTheme } from '@teispace/next-themes';
 import { Moon, Sun, } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 
