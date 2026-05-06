@@ -75,7 +75,18 @@ export const en = {
       eventNamePlaceholder: "e.g. Festival 2026",
       eventNameSaved: "Event name saved",
       settings: "Settings",
-      backToManager: "Back to Manager"
+      backToManager: "Back to Manager",
+      numberDisplay: "Order number display",
+      numberDisplayDesc: "Choose whether to show the display code or the ticket's progressive number",
+      numberDisplayCode: "Display code",
+      numberDisplayCodeDesc: "Shows the alphanumeric code assigned to the order",
+      numberDisplayTicket: "Ticket number",
+      numberDisplayTicketDesc: "Shows the progressive ticket number",
+      ticketNumberMax: "Number limit",
+      ticketNumberMaxDesc: "Enable to cap numbers from 0 to limit value (exclusive)",
+      ticketNumberMaxLabel: "Limit value:",
+      ticketNumberMaxPlaceholder: "e.g. 100",
+      numberDisplaySaved: "Number display setting saved"
     },
     session: {
       logoutSuccess: "Logged out successfully",

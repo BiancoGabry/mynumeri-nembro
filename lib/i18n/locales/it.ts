@@ -75,7 +75,18 @@ export const it = {
       eventNamePlaceholder: "es. Sagra 2026",
       eventNameSaved: "Nome evento salvato",
       settings: "Impostazioni",
-      backToManager: "Torna al Manager"
+      backToManager: "Torna al Manager",
+      numberDisplay: "Visualizzazione numero ordine",
+      numberDisplayDesc: "Scegli se mostrare il codice display o il numero progressivo del ticket",
+      numberDisplayCode: "Codice display",
+      numberDisplayCodeDesc: "Mostra il codice alfanumerico assegnato all'ordine",
+      numberDisplayTicket: "Numero ticket",
+      numberDisplayTicketDesc: "Mostra il numero progressivo del ticket",
+      ticketNumberMax: "Limite numero",
+      ticketNumberMaxDesc: "Attiva per limitare i numeri mostrati che vanno da 0 al numero limite (escluso)",
+      ticketNumberMaxLabel: "Valore limite:",
+      ticketNumberMaxPlaceholder: "es. 100",
+      numberDisplaySaved: "Impostazione visualizzazione salvata"
     },
     session: {
       logoutSuccess: "Logout effettuato con successo",

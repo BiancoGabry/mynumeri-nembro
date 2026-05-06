@@ -1,7 +1,10 @@
 import { cn } from "@/lib/utils";
 import { Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { NUMBER_DISPLAY_KEY, TICKET_NUMBER_MAX_KEY } from "@/components/settings/NumberDisplaySettingsCard";
+import type { NumberDisplay } from "@/lib/display-config-store";
 
 interface OrdersGridProps {
     className?: string;
@@ -50,6 +53,16 @@ interface OrderCardProps {
 }
 
 function OrderCard({ order, status, onPrev, onNext }: OrderCardProps) {
+    const [numberDisplay, setNumberDisplay] = useState<NumberDisplay>("displayCode");
+    const [ticketNumberMax, setTicketNumberMax] = useState<number>(0);
+
+    useEffect(() => {
+        const nd = localStorage.getItem(NUMBER_DISPLAY_KEY) as NumberDisplay | null;
+        if (nd && ["displayCode", "ticketNumber"].includes(nd)) setNumberDisplay(nd);
+        const mx = localStorage.getItem(TICKET_NUMBER_MAX_KEY);
+        if (mx !== null) { const n = parseInt(mx, 10); if (!isNaN(n) && n >= 0) setTicketNumberMax(n); }
+    }, []);
+
     function addNext() {
         if (onNext) {
             onNext(order);
@@ -62,7 +75,12 @@ function OrderCard({ order, status, onPrev, onNext }: OrderCardProps) {
         }
     }
 
-    const orderTitle = order.displayCode;
+    const orderTitle = (() => {
+        if (numberDisplay !== "ticketNumber") return order.displayCode;
+        // 0 = no max, show raw ticketNumber
+        if (!ticketNumberMax) return String(order.ticketNumber);
+        return String(order.ticketNumber % ticketNumberMax);
+    })();
 
     if (status === 'CONFIRMED') {
         return (

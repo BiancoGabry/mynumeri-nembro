@@ -5,6 +5,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { getWorkdayBounds, sortByDate } from "@/utils/utils";
 import { type DisplayMode, DISPLAY_MODE_KEY } from "@/components/settings/DisplayModeSettingsCard";
 import { EVENT_NAME_KEY } from "@/components/settings/GeneralSettingsCard";
+import { NUMBER_DISPLAY_KEY, TICKET_NUMBER_MAX_KEY } from "@/components/settings/NumberDisplaySettingsCard";
+import type { NumberDisplay } from "@/lib/display-config-store";
 import { useTranslation } from "react-i18next";
 
 const COLS = 5;
@@ -101,9 +103,10 @@ interface DisplaySectionProps {
     cardBgClass: string;
     sectionId: string;
     immediateRemoval?: boolean;
+    getOrderLabel: (order: ReadyOrder) => string;
 }
 
-function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, sectionId, immediateRemoval = false }: DisplaySectionProps) {
+function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, sectionId, immediateRemoval = false, getOrderLabel }: DisplaySectionProps) {
     const cardsPerPage = cols * rows;
     const [currentPage, setCurrentPage] = useState(0);
     const [displayedOrders, setDisplayedOrders] = useState<ReadyOrder[]>(orders);
@@ -204,7 +207,7 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
                                 className="font-black text-black select-none leading-none"
                                 style={{ fontSize: "clamp(2rem, 4vw, 6rem)" }}
                             >
-                                {order.displayCode}
+                                {getOrderLabel(order)}
                             </p>
                         </div>
                     ))}
@@ -222,6 +225,8 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
 export default function Display() {
     const { t } = useTranslation();
     const [displayMode, setDisplayMode] = useState<DisplayMode>("ready");
+    const [numberDisplay, setNumberDisplay] = useState<NumberDisplay>("displayCode");
+    const [ticketNumberMax, setTicketNumberMax] = useState<number>(100);
 
     const TITLE_MAP: Record<DisplayMode, string> = {
         ready: t("display.ordersReady"),
@@ -246,6 +251,17 @@ export default function Display() {
     const [fsQueue, setFsQueue] = useState<ReadyOrder[]>([]);
     const [currentFsOrder, setCurrentFsOrder] = useState<ReadyOrder | null>(null);
     const [fsExiting, setFsExiting] = useState(false);
+
+    // Helper: compute what label to show for an order card
+    const getOrderLabel = useCallback(
+        (order: ReadyOrder) => {
+            if (numberDisplay !== "ticketNumber") return order.displayCode;
+            // ticketNumberMax === 0 means "no max" — show raw ticketNumber
+            if (!ticketNumberMax) return String(order.ticketNumber);
+            return String(order.ticketNumber % ticketNumberMax);
+        },
+        [numberDisplay, ticketNumberMax]
+    );
 
     // The active orders list for single-mode pagination
     const activeOrders = displayMode === "preparing" ? prepOrders : readyOrders;
@@ -275,6 +291,10 @@ export default function Display() {
                         setDisplayMode(storedMode);
                         displayModeRef.current = storedMode;
                     }
+                    const storedND = localStorage.getItem(NUMBER_DISPLAY_KEY) as NumberDisplay | null;
+                    if (storedND && ["displayCode", "ticketNumber"].includes(storedND)) setNumberDisplay(storedND);
+                    const storedMax = localStorage.getItem(TICKET_NUMBER_MAX_KEY);
+                    if (storedMax) { const n = parseInt(storedMax, 10); if (!isNaN(n) && n >= 1) setTicketNumberMax(n); }
                     fetchOrders();
                     return;
                 }
@@ -285,6 +305,13 @@ export default function Display() {
                     displayModeRef.current = mode;
                 }
                 if (typeof cfg.announcement === "string") setAnnouncement(cfg.announcement);
+                if (cfg.numberDisplay && ["displayCode", "ticketNumber"].includes(cfg.numberDisplay)) {
+                    setNumberDisplay(cfg.numberDisplay as NumberDisplay);
+                }
+                // 0 = no max (show raw ticketNumber + 1), positive = modulo cap
+                if (typeof cfg.ticketNumberMax === "number" && cfg.ticketNumberMax >= 0) {
+                    setTicketNumberMax(cfg.ticketNumberMax);
+                }
                 fetchOrders();
             })
             .catch(() => {
@@ -295,6 +322,10 @@ export default function Display() {
                     setDisplayMode(storedMode);
                     displayModeRef.current = storedMode;
                 }
+                const storedND = localStorage.getItem(NUMBER_DISPLAY_KEY) as NumberDisplay | null;
+                if (storedND && ["displayCode", "ticketNumber"].includes(storedND)) setNumberDisplay(storedND);
+                const storedMax = localStorage.getItem(TICKET_NUMBER_MAX_KEY);
+                if (storedMax) { const n = parseInt(storedMax, 10); if (!isNaN(n) && n >= 1) setTicketNumberMax(n); }
                 fetchOrders();
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -314,6 +345,12 @@ export default function Display() {
                 if (mode && ["ready", "preparing", "hybrid"].includes(mode)) {
                     setDisplayMode(mode);
                     displayModeRef.current = mode;
+                }
+                if (cfg.numberDisplay && ["displayCode", "ticketNumber"].includes(cfg.numberDisplay)) {
+                    setNumberDisplay(cfg.numberDisplay as NumberDisplay);
+                }
+                if (typeof cfg.ticketNumberMax === "number" && cfg.ticketNumberMax >= 0) {
+                    setTicketNumberMax(cfg.ticketNumberMax);
                 }
             } catch { /* ignore parse errors */ }
         };
@@ -550,6 +587,7 @@ export default function Display() {
                             cardBgClass="bg-yellow-100"
                             sectionId="prep"
                             immediateRemoval
+                            getOrderLabel={getOrderLabel}
                         />
                     </div>
                     <div className="col-span-1 h-full">
@@ -561,6 +599,7 @@ export default function Display() {
                             headerClass="bg-green-400"
                             cardBgClass="bg-green-100"
                             sectionId="ready"
+                            getOrderLabel={getOrderLabel}
                         />
                     </div>
                 </main>
@@ -583,7 +622,7 @@ export default function Display() {
                                     className="font-black text-black select-none leading-none"
                                     style={{ fontSize: "clamp(3rem, 6vw, 9rem)" }}
                                 >
-                                    {order.displayCode}
+                                    {getOrderLabel(order)}
                                 </p>
                             </div>
                         ))}
@@ -617,7 +656,7 @@ export default function Display() {
                             className="font-black text-black select-none leading-none"
                             style={{ fontSize: "clamp(8rem, 18vw, 20rem)" }}
                         >
-                            {currentFsOrder.displayCode}
+                            {getOrderLabel(currentFsOrder)}
                         </p>
                     </div>
                 </div>
