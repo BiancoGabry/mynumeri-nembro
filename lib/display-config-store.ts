@@ -5,11 +5,14 @@ import fs from "fs";
 import path from "path";
 
 export type DisplayMode = "ready" | "preparing" | "hybrid";
+export type NumberDisplay = "displayCode" | "ticketNumber";
 
 export interface DisplayConfig {
     announcement: string;
     eventName: string;
     displayMode: DisplayMode;
+    numberDisplay: NumberDisplay;
+    ticketNumberMax: number;
 }
 
 type Subscriber = (text: string) => void;
@@ -21,6 +24,8 @@ const DEFAULT_CONFIG: DisplayConfig = {
     announcement: "",
     eventName: "",
     displayMode: "ready",
+    numberDisplay: "displayCode",
+    ticketNumberMax: 100,
 };
 
 // In-memory cache — populated lazily on first read/write
@@ -72,7 +77,8 @@ export function updateConfig(patch: Partial<DisplayConfig>): DisplayConfig {
         });
     }
 
-    if (patch.displayMode !== undefined || patch.eventName !== undefined) {
+    if (patch.displayMode !== undefined || patch.eventName !== undefined ||
+        patch.numberDisplay !== undefined || patch.ticketNumberMax !== undefined) {
         configSubscribers.forEach((fn) => {
             try { fn({ ...cache }); } catch { /* subscriber gone */ }
         });

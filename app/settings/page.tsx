@@ -4,6 +4,7 @@ import { SettingsHeader } from "@/components/settings/header";
 import { AppearanceSettingsCard } from "@/components/settings/AppearanceSettingsCard";
 import { GeneralSettingsCard } from "@/components/settings/GeneralSettingsCard";
 import { DisplayModeSettingsCard } from "@/components/settings/DisplayModeSettingsCard";
+import { NumberDisplaySettingsCard } from "@/components/settings/NumberDisplaySettingsCard";
 
 export default function SettingsPage() {
     return (
@@ -13,6 +14,7 @@ export default function SettingsPage() {
                 <div className="max-w-4xl mx-auto p-6 pt-24 space-y-6">
                     <GeneralSettingsCard />
                     <DisplayModeSettingsCard />
+                    <NumberDisplaySettingsCard />
                     <AppearanceSettingsCard />
                 </div>
             </main>
