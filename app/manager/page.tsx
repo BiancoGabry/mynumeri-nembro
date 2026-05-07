@@ -76,10 +76,11 @@ export default function Manager() {
             const { dateFrom, dateTo } = getWorkdayBounds();
             const dateParams = `&dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`;
 
+            // Always fetch with station states included
+            const orders = await fetchAllPages(`${dateParams}&include=ordersStationsStates`);
+
             if (stationsEnabledRef.current) {
                 const stList = stationsRef.current;
-                const orders = await fetchAllPages(`${dateParams}&include=ordersStationsStates`);
-
                 const confirmedMap: Record<string, Order[]> = {};
                 const completedMap: Record<string, Order[]> = {};
                 const pickedUp: Order[] = [];
@@ -104,11 +105,12 @@ export default function Manager() {
                 return;
             }
 
-            const orders = await fetchAllPages(dateParams);
+            // Normal mode: skip orders with no station assignments
             const confirmed: Order[] = [];
             const ready: Order[] = [];
             const pickedUp: Order[] = [];
             for (const o of orders) {
+                if ((o.orderStationStates ?? []).length === 0) continue;
                 if (o.status === 'CONFIRMED' || o.status === 'PARTIAL') confirmed.push(o);
                 else if (o.status === 'COMPLETED') ready.push(o);
                 else if (o.status === 'PICKED_UP') pickedUp.push(o);
@@ -153,7 +155,6 @@ export default function Manager() {
         fetchOrders();
 
         const eventSource = new EventSource('/api/events/display');
-        eventSource.onopen = () => { fetchOrders(); };
 
         const removeFromAllStations = (orderId: string) => {
             setStationConfirmed(prev => {
@@ -171,6 +172,8 @@ export default function Manager() {
         const handleConfirmedOrder = (event: MessageEvent) => {
             try {
                 const newOrder = toOrder(JSON.parse(event.data));
+                // Ignore orders not assigned to any station
+                if ((newOrder.ordersStations ?? []).length === 0) return;
                 if (stationsEnabledRef.current) {
                     setStationConfirmed(prev => {
                         const next = { ...prev };

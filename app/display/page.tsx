@@ -410,13 +410,14 @@ export default function Display() {
             const dateParams = `&dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`;
             const mode = displayModeRef.current;
 
-            if (stationsEnabledRef.current) {
-                const res = await fetch(`/api/orders?limit=100${dateParams}&include=ordersStationsStates`);
-                if (!res.ok) return;
-                const json = await res.json();
-                const orders: Order[] = json.data || json.orders || (Array.isArray(json) ? json : []);
-                if (!Array.isArray(orders)) return;
+            // Always fetch with station states included
+            const res = await fetch(`/api/orders?limit=100${dateParams}&include=ordersStationsStates`);
+            if (!res.ok) return;
+            const json = await res.json();
+            const orders: Order[] = json.data || json.orders || (Array.isArray(json) ? json : []);
+            if (!Array.isArray(orders)) return;
 
+            if (stationsEnabledRef.current) {
                 const confirmedMap: Record<string, ReadyOrder[]> = {};
                 const completedMap: Record<string, ReadyOrder[]> = {};
                 for (const o of orders) {
@@ -437,17 +438,11 @@ export default function Display() {
                 return;
             }
 
-            const res = await fetch(`/api/orders?limit=100${dateParams}`);
-            if (res.ok) {
-                const json = await res.json();
-                const orders: Order[] = json.data || json.orders || (Array.isArray(json) ? json : []);
-                if (Array.isArray(orders)) {
-                    const sorted = orders.sort(sortByDate);
-                    const toRO = (o: Order): ReadyOrder => ({ id: o.id, ticketNumber: o.ticketNumber, displayCode: o.displayCode, status: o.status });
-                    if (mode === "ready" || mode === "hybrid") setReadyOrders(sorted.filter(o => o.status === 'COMPLETED').map(toRO));
-                    if (mode === "preparing" || mode === "hybrid") setPrepOrders(sorted.filter(o => o.status === 'CONFIRMED' || o.status === 'PARTIAL').map(toRO));
-                }
-            }
+            // Normal mode: skip orders with no station assignments
+            const sorted = orders.filter(o => (o.orderStationStates ?? []).length > 0).sort(sortByDate);
+            const toRO = (o: Order): ReadyOrder => ({ id: o.id, ticketNumber: o.ticketNumber, displayCode: o.displayCode, status: o.status });
+            if (mode === "ready" || mode === "hybrid") setReadyOrders(sorted.filter(o => o.status === 'COMPLETED').map(toRO));
+            if (mode === "preparing" || mode === "hybrid") setPrepOrders(sorted.filter(o => o.status === 'CONFIRMED' || o.status === 'PARTIAL').map(toRO));
         } catch (err) {
             console.error("Failed to fetch orders:", err);
         }
@@ -459,7 +454,6 @@ export default function Display() {
     useEffect(() => {
         fetchOrders();
         const es = new EventSource("/api/events/display");
-        es.onopen = () => fetchOrders();
 
         const removeFromAllStationMaps = (orderId: string) => {
             setStationConfirmed(prev => {
@@ -478,17 +472,18 @@ export default function Display() {
             const data = JSON.parse(event.data) as ReadyOrder;
             const mode = displayModeRef.current;
 
+            // Ignore orders not assigned to any station (universal check)
+            if ((data.ordersStations ?? []).length === 0) return;
+
             if (stationsEnabledRef.current) {
-                if (data.ordersStations && data.ordersStations.length > 0) {
-                    setStationConfirmed(prev => {
-                        const next = { ...prev };
-                        for (const stId of data.ordersStations!) {
-                            const existing = next[stId] ?? [];
-                            if (!existing.find(o => String(o.id) === String(data.id))) next[stId] = [...existing, data];
-                        }
-                        return next;
-                    });
-                }
+                setStationConfirmed(prev => {
+                    const next = { ...prev };
+                    for (const stId of data.ordersStations!) {
+                        const existing = next[stId] ?? [];
+                        if (!existing.find(o => String(o.id) === String(data.id))) next[stId] = [...existing, data];
+                    }
+                    return next;
+                });
                 if (mode === "preparing" || mode === "hybrid") {
                     setFsQueue(q => q.find(o => String(o.id) === String(data.id)) ? q : [...q, data]);
                 }
