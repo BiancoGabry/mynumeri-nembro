@@ -52,7 +52,7 @@ interface OrderCardProps {
     onNext?: (order: Order) => void;
 }
 
-function OrderCard({ order, status, onPrev, onNext }: OrderCardProps) {
+export function OrderCard({ order, status, onPrev, onNext }: OrderCardProps) {
     const [numberDisplay, setNumberDisplay] = useState<NumberDisplay>("displayCode");
     const [ticketNumberMax, setTicketNumberMax] = useState<number>(0);
 

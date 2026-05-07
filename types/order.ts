@@ -1,3 +1,8 @@
+type OrderStationState = {
+    stationId: string;
+    status: string;
+};
+
 type Order = {
     id: string;
     ticketNumber: number;
@@ -9,6 +14,7 @@ type Order = {
     table?: string;
     status: `PENDING` | `CONFIRMED` | `COMPLETED` | `PICKED_UP`;
     ordersStations?: string[];
+    orderStationStates?: OrderStationState[];
 }
 type Status = `PENDING` | `CONFIRMED` | `COMPLETED` | `PICKED_UP`;
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/manager/header";
 import OrdersGrid from "@/components/manager/orders-grid";
 import { PickedUpOrdersSheet } from "@/components/manager/picked-up-orders-sheet";
+import { StationCard } from "@/components/manager/StationCard";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -24,6 +25,7 @@ const toOrder = (o: Order): Order => ({
     confirmedAt: o.confirmedAt,
     completedAt: o.completedAt,
     ordersStations: o.ordersStations,
+    orderStationStates: o.orderStationStates,
 });
 
 export default function Manager() {
@@ -63,15 +65,20 @@ export default function Manager() {
         return all;
     };
 
-    const buildStationMap = (orders: Order[], stList: Station[]): Record<string, Order[]> => {
-        const map: Record<string, Order[]> = {};
-        for (const s of stList) map[s.id] = [];
+    const buildStationMaps = (orders: Order[], stList: Station[]): { confirmed: Record<string, Order[]>; completed: Record<string, Order[]> } => {
+        const confirmed: Record<string, Order[]> = {};
+        const completed: Record<string, Order[]> = {};
+        for (const s of stList) { confirmed[s.id] = []; completed[s.id] = []; }
         for (const o of orders) {
-            for (const stId of o.ordersStations ?? []) {
-                if (stId in map && !map[stId].find(x => x.id === o.id)) map[stId].push(o);
+            for (const state of o.orderStationStates ?? []) {
+                if (state.status === 'CONFIRMED' && state.stationId in confirmed && !confirmed[state.stationId].find(x => x.id === o.id)) {
+                    confirmed[state.stationId].push(o);
+                } else if (state.status === 'COMPLETED' && state.stationId in completed && !completed[state.stationId].find(x => x.id === o.id)) {
+                    completed[state.stationId].push(o);
+                }
             }
         }
-        return map;
+        return { confirmed, completed };
     };
 
     const fetchOrders = useCallback(async () => {
@@ -81,15 +88,15 @@ export default function Manager() {
 
             if (stationsEnabledRef.current) {
                 const stList = stationsRef.current;
-                const [confirmed, pickedUp] = await Promise.all([
-                    fetchAllPages(`${dateParams}&status=CONFIRMED&sortBy=confirmedAt`),
+                const includeParam = '&include=ordersStationsStates';
+                const [stConfirmed, stCompleted, pickedUp] = await Promise.all([
+                    fetchAllPages(`${dateParams}&status=CONFIRMED&sortBy=confirmedAt${includeParam}`),
+                    fetchAllPages(`${dateParams}&status=COMPLETED&sortBy=completedAt${includeParam}`),
                     fetchAllPages(`${dateParams}&status=PICKED_UP&sortBy=completedAt`),
                 ]);
-                setStationConfirmed(buildStationMap(confirmed, stList));
-                // Reset completed (no way to know per-station completed from global fetch)
-                const emptyMap: Record<string, Order[]> = {};
-                for (const s of stList) emptyMap[s.id] = [];
-                setStationCompleted(emptyMap);
+                const { confirmed: confirmedMap, completed: completedMap } = buildStationMaps([...stConfirmed, ...stCompleted], stList);
+                setStationConfirmed(confirmedMap);
+                setStationCompleted(completedMap);
                 setPickedUpOrders(pickedUp);
                 return;
             }
@@ -322,39 +329,21 @@ export default function Manager() {
             <div className="h-screen w-full flex flex-col overflow-hidden">
                 <Header pickedUpOrders={pickedUpOrders} onPickupPrev={handlePickupToCompleteStation} />
                 <main className="flex-1 w-full overflow-hidden">
-                    <div className="h-full w-full flex flex-col gap-3 p-3 pt-20 md:pt-24 max-w-[1920px] mx-auto">
-                        {/* Top row: preparing per station */}
-                        <div className="flex-1 flex gap-3 min-h-0 overflow-x-auto">
-                            {stations.map(station => (
-                                <OrdersGrid
-                                    key={station.id}
-                                    status="CONFIRMED"
-                                    className="flex-1 min-w-[220px] min-h-0 h-full"
-                                    orders={stationConfirmed[station.id] ?? []}
-                                    title={station.name}
-                                    onNext={order => handleStationMarkDone(order, station.id)}
-                                />
-                            ))}
-                        </div>
-                        {/* Bottom row: done per station + per-station picked-up sheet */}
-                        <div className="flex-1 flex gap-3 min-h-0 overflow-x-auto">
-                            {stations.map(station => (
-                                <OrdersGrid
-                                    key={station.id}
-                                    status="COMPLETED"
-                                    className="flex-1 min-w-[220px] min-h-0 h-full"
-                                    orders={stationCompleted[station.id] ?? []}
-                                    title={station.name}
-                                    onPrev={order => handleStationMarkUndo(order, station.id)}
-                                    onNext={order => handleStationMarkPickup(order)}
-                                >
-                                    <PickedUpOrdersSheet
-                                        pickedUpOrders={pickedUpOrders.filter(o => o.ordersStations?.includes(station.id))}
-                                        onPrev={handlePickupToCompleteStation}
-                                    />
-                                </OrdersGrid>
-                            ))}
-                        </div>
+                    <div className="h-full w-full flex gap-3 p-3 pt-20 md:pt-24 max-w-[1920px] mx-auto overflow-x-auto">
+                        {stations.map(station => (
+                            <StationCard
+                                key={station.id}
+                                className="flex-1 min-w-60"
+                                stationName={station.name}
+                                confirmedOrders={stationConfirmed[station.id] ?? []}
+                                completedOrders={stationCompleted[station.id] ?? []}
+                                pickedUpOrders={pickedUpOrders.filter(o => o.ordersStations?.includes(station.id))}
+                                onConfirmedNext={order => handleStationMarkDone(order, station.id)}
+                                onCompletedPrev={order => handleStationMarkUndo(order, station.id)}
+                                onCompletedNext={order => handleStationMarkPickup(order)}
+                                onPickupPrev={handlePickupToCompleteStation}
+                            />
+                        ))}
                     </div>
                 </main>
             </div>

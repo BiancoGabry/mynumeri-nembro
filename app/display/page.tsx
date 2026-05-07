@@ -32,6 +32,7 @@ interface ReadyOrder {
     ticketNumber: number;
     displayCode: string;
     ordersStations?: string[];
+    orderStationStates?: OrderStationState[];
 }
 
 // ---------------------------------------------------------------------------
@@ -100,9 +101,11 @@ interface DisplaySectionProps {
     sectionId: string;
     immediateRemoval?: boolean;
     getOrderLabel: (order: ReadyOrder) => string;
+    /** When true, renders without the outer card wrapper (for embedding inside SplitDisplaySection) */
+    bare?: boolean;
 }
 
-function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, sectionId, immediateRemoval = false, getOrderLabel }: DisplaySectionProps) {
+function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, sectionId, immediateRemoval = false, getOrderLabel, bare = false }: DisplaySectionProps) {
     const cardsPerPage = cols * rows;
     const [currentPage, setCurrentPage] = useState(0);
     const [displayedOrders, setDisplayedOrders] = useState<ReadyOrder[]>(orders);
@@ -140,10 +143,10 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
 
     const pageOrders = displayedOrders.slice(currentPage * cardsPerPage, (currentPage + 1) * cardsPerPage);
 
-    return (
-        <div className="flex flex-col h-full rounded-xl overflow-hidden border-2 border-gray-200 bg-white shadow-sm">
-            <div className={`flex-shrink-0 flex items-center justify-between px-5 ${headerClass}`} style={{ minHeight: "60px" }}>
-                <h2 className="text-3xl font-black text-black select-none tracking-tight">{title}</h2>
+    const inner = (
+        <>
+            <div className={`flex-shrink-0 flex items-center justify-between px-5 ${headerClass}`} style={{ minHeight: "48px" }}>
+                <h3 className={`font-bold text-black select-none tracking-tight ${bare ? "text-lg" : "text-3xl font-black"}`}>{title}</h3>
                 {totalPages > 1 && (
                     <div className="flex items-center gap-1 bg-black/10 rounded-lg px-3 py-1">
                         <span className="text-black font-black text-base select-none tabular-nums leading-none">{currentPage + 1}</span>
@@ -152,11 +155,13 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
                     </div>
                 )}
             </div>
-            <div className="h-1.5 w-full bg-black/10 flex-shrink-0">
-                {totalPages > 1 && (
-                    <div key={`${sectionId}-${currentPage}`} className="h-full bg-black/70 rounded-r-full origin-left" style={{ animation: `progress-bar-fill ${PAGE_INTERVAL}ms linear forwards` }} />
-                )}
-            </div>
+            {!bare && (
+                <div className="h-1.5 w-full bg-black/10 shrink-0">
+                    {totalPages > 1 && (
+                        <div key={`${sectionId}-${currentPage}`} className="h-full bg-black/70 rounded-r-full origin-left" style={{ animation: `progress-bar-fill ${PAGE_INTERVAL}ms linear forwards` }} />
+                    )}
+                </div>
+            )}
             <div className="flex-1 p-4 overflow-hidden">
                 <div className="h-full grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
                     {pageOrders.map(order => (
@@ -167,6 +172,76 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
                         </div>
                     ))}
                 </div>
+            </div>
+        </>
+    );
+
+    if (bare) return <div className="flex flex-col h-full">{inner}</div>;
+    return <div className="flex flex-col h-full rounded-xl overflow-hidden border-2 border-gray-200 bg-white shadow-sm">{inner}</div>;
+}
+
+// ---------------------------------------------------------------------------
+// SplitDisplaySection — one card split top/bottom for hybrid stations mode
+// ---------------------------------------------------------------------------
+
+interface SplitDisplaySectionProps {
+    stationName: string;
+    topOrders: ReadyOrder[];
+    bottomOrders: ReadyOrder[];
+    topTitle: string;
+    bottomTitle: string;
+    topHeaderClass: string;
+    bottomHeaderClass: string;
+    topCardBgClass: string;
+    bottomCardBgClass: string;
+    sectionId: string;
+    cols: number;
+    rows: number;
+    getOrderLabel: (order: ReadyOrder) => string;
+}
+
+function SplitDisplaySection({
+    stationName,
+    topOrders, bottomOrders,
+    topTitle, bottomTitle,
+    topHeaderClass, bottomHeaderClass,
+    topCardBgClass, bottomCardBgClass,
+    sectionId, cols, rows, getOrderLabel,
+}: SplitDisplaySectionProps) {
+    return (
+        <div className="flex flex-col h-full rounded-xl overflow-hidden border-2 border-gray-200 bg-white shadow-sm">
+            {/* Station name header */}
+            <div className="shrink-0 flex items-center px-5 bg-white" style={{ minHeight: "56px" }}>
+                <h2 className="text-2xl font-black text-black select-none tracking-tight">{stationName}</h2>
+            </div>
+            {/* Top half: preparing */}
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden border-t border-gray-200">
+                <DisplaySection
+                    orders={topOrders}
+                    cols={cols}
+                    rows={rows}
+                    title={topTitle}
+                    headerClass={topHeaderClass}
+                    cardBgClass={topCardBgClass}
+                    sectionId={`${sectionId}-top`}
+                    immediateRemoval
+                    bare
+                    getOrderLabel={getOrderLabel}
+                />
+            </div>
+            {/* Bottom half: ready */}
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden border-t-2 border-gray-200">
+                <DisplaySection
+                    orders={bottomOrders}
+                    cols={cols}
+                    rows={rows}
+                    title={bottomTitle}
+                    headerClass={bottomHeaderClass}
+                    cardBgClass={bottomCardBgClass}
+                    sectionId={`${sectionId}-bottom`}
+                    bare
+                    getOrderLabel={getOrderLabel}
+                />
             </div>
         </div>
     );
@@ -316,34 +391,49 @@ export default function Display() {
             const mode = displayModeRef.current;
 
             if (stationsEnabledRef.current) {
+                const includeParam = '&include=ordersStationsStates';
                 const [confirmedRes, completedRes] = await Promise.all([
-                    fetch(`/api/orders?status=CONFIRMED&limit=100${dateParams}`),
-                    fetch(`/api/orders?status=COMPLETED&limit=100${dateParams}`),
+                    fetch(`/api/orders?status=CONFIRMED&limit=100${dateParams}${includeParam}`),
+                    fetch(`/api/orders?status=COMPLETED&limit=100${dateParams}${includeParam}`),
                 ]);
 
-                const buildMap = (orders: Order[]): Record<string, ReadyOrder[]> => {
-                    const map: Record<string, ReadyOrder[]> = {};
+                const toReadyOrder = (o: Order): ReadyOrder => ({
+                    id: o.id, ticketNumber: o.ticketNumber, displayCode: o.displayCode,
+                    status: o.status, ordersStations: o.ordersStations, orderStationStates: o.orderStationStates,
+                });
+
+                const buildMaps = (orders: Order[]): { confirmed: Record<string, ReadyOrder[]>; completed: Record<string, ReadyOrder[]> } => {
+                    const confirmedMap: Record<string, ReadyOrder[]> = {};
+                    const completedMap: Record<string, ReadyOrder[]> = {};
                     for (const o of orders) {
-                        for (const stId of o.ordersStations ?? []) {
-                            if (!(stId in map)) map[stId] = [];
-                            if (!map[stId].find(x => x.id === o.id)) {
-                                map[stId].push({ id: o.id, ticketNumber: o.ticketNumber, displayCode: o.displayCode, status: o.status, ordersStations: o.ordersStations });
+                        const ro = toReadyOrder(o);
+                        for (const state of o.orderStationStates ?? []) {
+                            if (state.status === 'CONFIRMED') {
+                                if (!(state.stationId in confirmedMap)) confirmedMap[state.stationId] = [];
+                                if (!confirmedMap[state.stationId].find(x => x.id === o.id)) confirmedMap[state.stationId].push(ro);
+                            } else if (state.status === 'COMPLETED') {
+                                if (!(state.stationId in completedMap)) completedMap[state.stationId] = [];
+                                if (!completedMap[state.stationId].find(x => x.id === o.id)) completedMap[state.stationId].push(ro);
                             }
                         }
                     }
-                    return map;
+                    return { confirmed: confirmedMap, completed: completedMap };
                 };
 
+                const allOrders: Order[] = [];
                 if (confirmedRes.ok) {
                     const json = await confirmedRes.json();
                     const orders: Order[] = json.data || json.orders || json || [];
-                    if (Array.isArray(orders)) setStationConfirmed(prev => ({ ...prev, ...buildMap(orders) }));
+                    if (Array.isArray(orders)) allOrders.push(...orders);
                 }
                 if (completedRes.ok) {
                     const json = await completedRes.json();
                     const orders: Order[] = json.data || json.orders || json || [];
-                    if (Array.isArray(orders)) setStationCompleted(prev => ({ ...prev, ...buildMap(orders) }));
+                    if (Array.isArray(orders)) allOrders.push(...orders);
                 }
+                const { confirmed, completed } = buildMaps(allOrders);
+                setStationConfirmed(prev => ({ ...prev, ...confirmed }));
+                setStationCompleted(prev => ({ ...prev, ...completed }));
                 return;
             }
 
@@ -571,42 +661,28 @@ export default function Display() {
                 eventName={eventName}
             />
 
-            {/* STATIONS — HYBRID (≤3 stations): top=preparing, bottom=ready */}
+            {/* STATIONS — HYBRID (≤3 stations): one card per station split top=prep/bottom=ready */}
             {effectiveHybrid ? (
-                <main className="flex-1 overflow-hidden p-4 flex flex-col gap-4">
-                    <div className="flex-1 flex gap-4 min-h-0">
-                        {stations.map((station, idx) => (
-                            <div key={station.id} className="flex-1 h-full min-w-0">
-                                <DisplaySection
-                                    orders={stationConfirmed[station.id] ?? []}
-                                    cols={STATION_COLS}
-                                    rows={STATION_HYBRID_ROWS}
-                                    title={station.name}
-                                    headerClass="bg-yellow-300"
-                                    cardBgClass="bg-yellow-100"
-                                    sectionId={`st-prep-${idx}`}
-                                    immediateRemoval
-                                    getOrderLabel={getOrderLabel}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex-1 flex gap-4 min-h-0">
-                        {stations.map((station, idx) => (
-                            <div key={station.id} className="flex-1 h-full min-w-0">
-                                <DisplaySection
-                                    orders={stationCompleted[station.id] ?? []}
-                                    cols={STATION_COLS}
-                                    rows={STATION_HYBRID_ROWS}
-                                    title={station.name}
-                                    headerClass="bg-green-400"
-                                    cardBgClass="bg-green-100"
-                                    sectionId={`st-ready-${idx}`}
-                                    getOrderLabel={getOrderLabel}
-                                />
-                            </div>
-                        ))}
-                    </div>
+                <main className="flex-1 overflow-hidden p-4 flex gap-4">
+                    {stations.map((station, idx) => (
+                        <div key={station.id} className="flex-1 h-full min-w-0">
+                            <SplitDisplaySection
+                                stationName={station.name}
+                                topOrders={stationConfirmed[station.id] ?? []}
+                                bottomOrders={stationCompleted[station.id] ?? []}
+                                topTitle={t("display.preparing")}
+                                bottomTitle={t("display.ready")}
+                                topHeaderClass="bg-yellow-300"
+                                bottomHeaderClass="bg-green-400"
+                                topCardBgClass="bg-yellow-100"
+                                bottomCardBgClass="bg-green-100"
+                                sectionId={`st-${idx}`}
+                                cols={STATION_COLS}
+                                rows={STATION_HYBRID_ROWS}
+                                getOrderLabel={getOrderLabel}
+                            />
+                        </div>
+                    ))}
                 </main>
 
             /* STATIONS — PREPARING (or hybrid degraded with >3 stations) */
@@ -702,7 +778,7 @@ export default function Display() {
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
                 >
                     <div
-                        className={`flex flex-col items-center justify-center rounded-[2rem] bg-white px-24 py-20 ${fsExiting ? "fullscreen-overlay-card--exit" : "fullscreen-overlay-card"}`}
+                        className={`flex flex-col items-center justify-center rounded-4xl bg-white px-24 py-20 ${fsExiting ? "fullscreen-overlay-card--exit" : "fullscreen-overlay-card"}`}
                         style={{ minWidth: "min(88vw, 900px)", minHeight: "min(70vh, 600px)" }}
                     >
                         <p className="text-4xl font-bold text-gray-500 uppercase tracking-widest mb-6 select-none">
