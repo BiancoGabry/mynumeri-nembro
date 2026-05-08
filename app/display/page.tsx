@@ -413,15 +413,16 @@ export default function Display() {
                     stationsEnabledRef.current = cfg.stationsEnabled;
                     setStationsEnabled(cfg.stationsEnabled);
                     if (cfg.stationsEnabled) {
+                        setReadyOrders([]);
+                        setPrepOrders([]);
                         fetch("/api/stations")
                             .then(r => r.ok ? r.json() : null)
                             .then(data => {
                                 if (Array.isArray(data)) {
                                     setStations(data);
-                                    const empty: Record<string, ReadyOrder[]> = {};
-                                    for (const s of data) empty[s.id] = [];
-                                    setStationConfirmed({ ...empty });
-                                    setStationCompleted({ ...empty });
+                                    setStationConfirmed({});
+                                    setStationCompleted({});
+                                    pickedUpOrdersRef.current = {};
                                     fetchOrders();
                                 }
                             })
@@ -430,6 +431,9 @@ export default function Display() {
                         setStations([]);
                         setStationConfirmed({});
                         setStationCompleted({});
+                        pickedUpOrdersRef.current = {};
+                        setReadyOrders([]);
+                        setPrepOrders([]);
                         fetchOrders();
                     }
                 }
@@ -456,6 +460,7 @@ export default function Display() {
             if (!Array.isArray(orders)) return;
 
             if (stationsEnabledRef.current) {
+                pickedUpOrdersRef.current = {};
                 const confirmedMap: Record<string, ReadyOrder[]> = {};
                 const completedMap: Record<string, ReadyOrder[]> = {};
                 for (const o of orders) {
@@ -473,8 +478,8 @@ export default function Display() {
                         }
                     }
                 }
-                setStationConfirmed(prev => ({ ...prev, ...confirmedMap }));
-                setStationCompleted(prev => ({ ...prev, ...completedMap }));
+                setStationConfirmed(confirmedMap);
+                setStationCompleted(completedMap);
                 return;
             }
 
@@ -496,6 +501,7 @@ export default function Display() {
         const es = new EventSource("/api/events/display");
 
         const removeFromAllStationMaps = (orderId: string) => {
+            delete pickedUpOrdersRef.current[orderId];
             setStationConfirmed(prev => {
                 const next = { ...prev };
                 for (const k of Object.keys(next)) next[k] = next[k].filter(o => String(o.id) !== orderId);
@@ -620,13 +626,14 @@ export default function Display() {
                                ?? pickedUpOrdersRef.current[sid];
                     setStationConfirmed(prev => ({ ...prev, [stationId]: (prev[stationId] ?? []).filter(o => String(o.id) !== sid) }));
                     if (order) {
-                        delete pickedUpOrdersRef.current[sid];
+                        // Don't delete from pickedUpOrdersRef — other stations may still need it
                         setStationCompleted(prev => prev[stationId]?.find(o => String(o.id) === sid) ? prev : { ...prev, [stationId]: [...(prev[stationId] ?? []), order] });
                         if ((mode === "ready" || mode === "hybrid") && fullscreenAlertEnabledRef.current) setFsQueue(q => q.find(o => String(o.id) === sid) ? q : [...q, { ...order, _alertStationId: stationId }]);
                     }
                 } else if (status === "CONFIRMED") {
                     const order = stationCompletedRef.current[stationId]?.find(o => String(o.id) === sid)
-                               ?? stationConfirmedRef.current[stationId]?.find(o => String(o.id) === sid);
+                               ?? stationConfirmedRef.current[stationId]?.find(o => String(o.id) === sid)
+                               ?? pickedUpOrdersRef.current[sid];
                     setStationCompleted(prev => ({ ...prev, [stationId]: (prev[stationId] ?? []).filter(o => String(o.id) !== sid) }));
                     if (order) setStationConfirmed(prev => prev[stationId]?.find(o => String(o.id) === sid) ? prev : { ...prev, [stationId]: [...(prev[stationId] ?? []), order] });
                 } else if (status === "PICKED_UP") {
