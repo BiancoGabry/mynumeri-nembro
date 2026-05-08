@@ -94,6 +94,8 @@ export const en = {
       stationsSaved: "Stations setting saved",
       fullscreenAlertEnabled: "Full-screen alert",
       fullscreenAlertEnabledDesc: "Show a full-screen overlay when an order is ready",
+      autoScrollPagesEnabled: "Auto-scroll pages",
+      autoScrollPagesEnabledDesc: "Automatically scroll through order pages every 10 seconds",
       allOrders: "All orders"
     },
     session: {

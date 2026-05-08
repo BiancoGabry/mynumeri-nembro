@@ -94,6 +94,8 @@ export const it = {
       stationsSaved: "Impostazione postazioni salvata",
       fullscreenAlertEnabled: "Alert a tutto schermo",
       fullscreenAlertEnabledDesc: "Mostra un overlay a tutto schermo quando un ordine è pronto",
+      autoScrollPagesEnabled: "Scorrimento automatico pagine",
+      autoScrollPagesEnabledDesc: "Scorre automaticamente le pagine di ordini ogni 10 secondi",
       allOrders: "Tutti gli ordini"
     },
     session: {

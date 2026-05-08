@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 export type DisplayMode = "ready" | "preparing" | "hybrid";
 
 export const DISPLAY_MODE_KEY = "display-mode";
+export const AUTO_SCROLL_PAGES_KEY = "auto-scroll-pages";
 
 export function DisplayModeSettingsCard() {
     const { t } = useTranslation();
@@ -23,6 +24,8 @@ export function DisplayModeSettingsCard() {
     const [savedStationsEnabled, setSavedStationsEnabled] = useState(false);
     const [fullscreenAlertEnabled, setFullscreenAlertEnabled] = useState(true);
     const [savedFullscreenAlertEnabled, setSavedFullscreenAlertEnabled] = useState(true);
+    const [autoScrollPagesEnabled, setAutoScrollPagesEnabled] = useState(true);
+    const [savedAutoScrollPagesEnabled, setSavedAutoScrollPagesEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -68,6 +71,10 @@ export function DisplayModeSettingsCard() {
                     setFullscreenAlertEnabled(cfg.fullscreenAlertEnabled);
                     setSavedFullscreenAlertEnabled(cfg.fullscreenAlertEnabled);
                 }
+                if (typeof cfg?.autoScrollPagesEnabled === "boolean") {
+                    setAutoScrollPagesEnabled(cfg.autoScrollPagesEnabled);
+                    setSavedAutoScrollPagesEnabled(cfg.autoScrollPagesEnabled);
+                }
             })
             .catch(() => {
                 const stored = localStorage.getItem(DISPLAY_MODE_KEY) as DisplayMode | null;
@@ -85,11 +92,12 @@ export function DisplayModeSettingsCard() {
             await fetch("/api/display-config", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ displayMode: mode, stationsEnabled, fullscreenAlertEnabled }),
+                body: JSON.stringify({ displayMode: mode, stationsEnabled, fullscreenAlertEnabled, autoScrollPagesEnabled }),
             });
             setSavedMode(mode);
             setSavedStationsEnabled(stationsEnabled);
             setSavedFullscreenAlertEnabled(fullscreenAlertEnabled);
+            setSavedAutoScrollPagesEnabled(autoScrollPagesEnabled);
             localStorage.setItem(DISPLAY_MODE_KEY, mode);
             toast.success(t("settings.displayModeSaved"));
         } catch {
@@ -102,7 +110,8 @@ export function DisplayModeSettingsCard() {
     const hasChanges =
         mode !== savedMode ||
         stationsEnabled !== savedStationsEnabled ||
-        fullscreenAlertEnabled !== savedFullscreenAlertEnabled;
+        fullscreenAlertEnabled !== savedFullscreenAlertEnabled ||
+        autoScrollPagesEnabled !== savedAutoScrollPagesEnabled;
 
     return (
         <Card>
@@ -164,6 +173,17 @@ export function DisplayModeSettingsCard() {
                             id="fullscreen-alert-enabled"
                             checked={fullscreenAlertEnabled}
                             onCheckedChange={setFullscreenAlertEnabled}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="auto-scroll-pages-enabled" className="cursor-pointer select-none text-sm">
+                            {t("settings.autoScrollPagesEnabled")}
+                        </Label>
+                        <Switch
+                            id="auto-scroll-pages-enabled"
+                            checked={autoScrollPagesEnabled}
+                            onCheckedChange={setAutoScrollPagesEnabled}
                             disabled={isLoading}
                         />
                     </div>

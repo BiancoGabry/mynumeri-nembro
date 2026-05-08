@@ -25,6 +25,9 @@ export async function PATCH(request: Request) {
     if (typeof body.fullscreenAlertEnabled === "boolean") {
         patch.fullscreenAlertEnabled = body.fullscreenAlertEnabled;
     }
+    if (typeof body.autoScrollPagesEnabled === "boolean") {
+        patch.autoScrollPagesEnabled = body.autoScrollPagesEnabled;
+    }
 
     const updated = updateConfig(patch);
     return Response.json(updated);

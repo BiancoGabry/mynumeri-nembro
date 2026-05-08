@@ -15,6 +15,7 @@ export interface DisplayConfig {
     ticketNumberMax: number;
     stationsEnabled: boolean;
     fullscreenAlertEnabled: boolean;
+    autoScrollPagesEnabled: boolean;
 }
 
 type Subscriber = (text: string) => void;
@@ -30,6 +31,7 @@ const DEFAULT_CONFIG: DisplayConfig = {
     ticketNumberMax: 100,
     stationsEnabled: false,
     fullscreenAlertEnabled: true,
+    autoScrollPagesEnabled: true,
 };
 
 // In-memory cache — populated lazily on first read/write
@@ -83,7 +85,8 @@ export function updateConfig(patch: Partial<DisplayConfig>): DisplayConfig {
 
     if (patch.displayMode !== undefined || patch.eventName !== undefined ||
         patch.numberDisplay !== undefined || patch.ticketNumberMax !== undefined ||
-        patch.stationsEnabled !== undefined || patch.fullscreenAlertEnabled !== undefined) {
+        patch.stationsEnabled !== undefined || patch.fullscreenAlertEnabled !== undefined ||
+        patch.autoScrollPagesEnabled !== undefined) {
         configSubscribers.forEach((fn) => {
             try { fn({ ...cache }); } catch { /* subscriber gone */ }
         });
