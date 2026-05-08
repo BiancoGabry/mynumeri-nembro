@@ -28,6 +28,9 @@ export async function PATCH(request: Request) {
     if (typeof body.autoScrollPagesEnabled === "boolean") {
         patch.autoScrollPagesEnabled = body.autoScrollPagesEnabled;
     }
+    if (typeof body.displayZoom === "number" && body.displayZoom >= 50 && body.displayZoom <= 200) {
+        patch.displayZoom = Math.round(body.displayZoom);
+    }
 
     const updated = updateConfig(patch);
     return Response.json(updated);

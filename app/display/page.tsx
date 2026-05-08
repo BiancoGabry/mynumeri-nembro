@@ -6,6 +6,7 @@ import { getWorkdayBounds, sortByDate } from "@/utils/utils";
 import { type DisplayMode, DISPLAY_MODE_KEY } from "@/components/settings/DisplayModeSettingsCard";
 import { EVENT_NAME_KEY } from "@/components/settings/GeneralSettingsCard";
 import { NUMBER_DISPLAY_KEY, TICKET_NUMBER_MAX_KEY } from "@/components/settings/NumberDisplaySettingsCard";
+import { DISPLAY_ZOOM_KEY } from "@/components/settings/DisplayZoomSettingsCard";
 import type { NumberDisplay } from "@/lib/display-config-store";
 import { useTranslation } from "react-i18next";
 
@@ -120,9 +121,10 @@ interface DisplaySectionProps {
     getOrderLabel: (order: ReadyOrder) => string;
     bare?: boolean;
     autoScrollEnabled?: boolean;
+    displayZoom?: number;
 }
 
-function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, sectionId, immediateRemoval = false, getOrderLabel, bare = false, autoScrollEnabled = true }: DisplaySectionProps) {
+function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, sectionId, immediateRemoval = false, getOrderLabel, bare = false, autoScrollEnabled = true, displayZoom = 100 }: DisplaySectionProps) {
     const staticCardsPerPage = cols * rows;
     const [effectiveCardsPerPage, setEffectiveCardsPerPage] = useState(staticCardsPerPage);
     const cardsPerPage = effectiveCardsPerPage;
@@ -142,8 +144,8 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
             const { width, height } = el.getBoundingClientRect();
             if (width < 10 || height < 10) return;
             const gap = 12; // gap-3 = 12px
-            const minColW = 100; // minmax(100px, 1fr)
-            const minRowH = 70;  // minmax(70px, 1fr)
+            const minColW = 100 * displayZoom / 100; // minmax(100px, 1fr) scaled by zoom
+            const minRowH = 70 * displayZoom / 100;  // minmax(70px, 1fr) scaled by zoom
             const c = Math.max(1, Math.floor((width + gap) / (minColW + gap)));
             const r = Math.max(1, Math.floor((height + gap) / (minRowH + gap)));
             setEffectiveCardsPerPage(c * r);
@@ -152,7 +154,7 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
         const ro = new ResizeObserver(compute);
         ro.observe(el);
         return () => ro.disconnect();
-    }, []);
+    }, [displayZoom]);
 
     const realOrderCount = displayedOrders.filter((o): o is ReadyOrder => o !== null).length;
     const totalPages = Math.max(1, Math.ceil(realOrderCount / cardsPerPage));
@@ -213,7 +215,7 @@ function DisplaySection({ orders, cols, rows, title, headerClass, cardBgClass, s
                 </div>
             )}
             <div className="flex-1 p-4 overflow-hidden">
-                <div ref={gridRef} className="h-full grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(100px, 1fr))`, gridTemplateRows: `repeat(auto-fill, minmax(70px, 1fr))` }}>
+                <div ref={gridRef} className="h-full grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${100 * displayZoom / 100}px, 1fr))`, gridTemplateRows: `repeat(auto-fill, minmax(${70 * displayZoom / 100}px, 1fr))` }}>
                     {pageOrders.map((order, idx) => order ? (
                         <OrderCard key={order.id} order={order} getOrderLabel={getOrderLabel} cardBgClass={cardBgClass} />
                     ) : (
@@ -248,6 +250,7 @@ interface SplitDisplaySectionProps {
     bottomRows: number;
     getOrderLabel: (order: ReadyOrder) => string;
     autoScrollEnabled?: boolean;
+    displayZoom?: number;
 }
 
 function SplitDisplaySection({
@@ -258,6 +261,7 @@ function SplitDisplaySection({
     topCardBgClass, bottomCardBgClass,
     sectionId, cols, topRows, bottomRows, getOrderLabel,
     autoScrollEnabled = true,
+    displayZoom = 100,
 }: SplitDisplaySectionProps) {
     return (
         <div className="flex flex-col h-full rounded-xl overflow-hidden border-2 border-gray-200 bg-white shadow-sm">
@@ -279,6 +283,7 @@ function SplitDisplaySection({
                     bare
                     getOrderLabel={getOrderLabel}
                     autoScrollEnabled={autoScrollEnabled}
+                    displayZoom={displayZoom}
                 />
             </div>
             {/* Bottom 2/3: ready */}
@@ -293,7 +298,8 @@ function SplitDisplaySection({
                     sectionId={`${sectionId}-bottom`}
                     bare
                     getOrderLabel={getOrderLabel}
-                    autoScrollEnabled={autoScrollEnabled}
+                    autoScrollEnabled={true}
+                    displayZoom={displayZoom}
                 />
             </div>
         </div>
@@ -312,6 +318,7 @@ export default function Display() {
     const [stationsEnabled, setStationsEnabled] = useState(false);
     const [autoScrollPagesEnabled, setAutoScrollPagesEnabled] = useState(true);
     const [stations, setStations] = useState<Station[]>([]);
+    const [displayZoom, setDisplayZoom] = useState(100);
 
     // Per-station order maps (stations mode)
     const [stationConfirmed, setStationConfirmed] = useState<Record<string, ReadyOrder[]>>({});
@@ -398,6 +405,7 @@ export default function Display() {
                 if (typeof cfg.ticketNumberMax === "number" && cfg.ticketNumberMax >= 0) setTicketNumberMax(cfg.ticketNumberMax);
                 if (typeof cfg.fullscreenAlertEnabled === "boolean") { fullscreenAlertEnabledRef.current = cfg.fullscreenAlertEnabled; setFullscreenAlertEnabled(cfg.fullscreenAlertEnabled); }
                 if (typeof cfg.autoScrollPagesEnabled === "boolean") { autoScrollPagesEnabledRef.current = cfg.autoScrollPagesEnabled; setAutoScrollPagesEnabled(cfg.autoScrollPagesEnabled); }
+                if (typeof cfg.displayZoom === "number" && cfg.displayZoom >= 50 && cfg.displayZoom <= 200) { setDisplayZoom(cfg.displayZoom); localStorage.setItem(DISPLAY_ZOOM_KEY, String(cfg.displayZoom)); }
                 if (cfg.stationsEnabled) {
                     stationsEnabledRef.current = true;
                     setStationsEnabled(true);
@@ -427,6 +435,8 @@ export default function Display() {
                 if (storedND && ["displayCode", "ticketNumber"].includes(storedND)) setNumberDisplay(storedND);
                 const storedMax = localStorage.getItem(TICKET_NUMBER_MAX_KEY);
                 if (storedMax) { const n = parseInt(storedMax, 10); if (!isNaN(n) && n >= 1) setTicketNumberMax(n); }
+                const storedZoom = localStorage.getItem(DISPLAY_ZOOM_KEY);
+                if (storedZoom) { const z = parseInt(storedZoom, 10); if (!isNaN(z) && z >= 50 && z <= 200) setDisplayZoom(z); }
                 fetchOrders();
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -447,6 +457,7 @@ export default function Display() {
                 if (typeof cfg.ticketNumberMax === "number" && cfg.ticketNumberMax >= 0) setTicketNumberMax(cfg.ticketNumberMax);
                 if (typeof cfg.fullscreenAlertEnabled === "boolean") { fullscreenAlertEnabledRef.current = cfg.fullscreenAlertEnabled; setFullscreenAlertEnabled(cfg.fullscreenAlertEnabled); }
                 if (typeof cfg.autoScrollPagesEnabled === "boolean") { autoScrollPagesEnabledRef.current = cfg.autoScrollPagesEnabled; setAutoScrollPagesEnabled(cfg.autoScrollPagesEnabled); }
+                if (typeof cfg.displayZoom === "number" && cfg.displayZoom >= 50 && cfg.displayZoom <= 200) { setDisplayZoom(cfg.displayZoom); localStorage.setItem(DISPLAY_ZOOM_KEY, String(cfg.displayZoom)); }
                 if (typeof cfg.stationsEnabled === "boolean") {
                     stationsEnabledRef.current = cfg.stationsEnabled;
                     setStationsEnabled(cfg.stationsEnabled);
@@ -828,6 +839,7 @@ export default function Display() {
                                     bottomRows={STATION_HYBRID_ROWS}
                                     getOrderLabel={getOrderLabel}
                                     autoScrollEnabled={autoScrollPagesEnabled}
+                                    displayZoom={displayZoom}
                                 />
                             </div>
                         );
@@ -853,6 +865,7 @@ export default function Display() {
                                     immediateRemoval
                                     getOrderLabel={getOrderLabel}
                                     autoScrollEnabled={autoScrollPagesEnabled}
+                                    displayZoom={displayZoom}
                                 />
                             </div>
                         );
@@ -876,7 +889,8 @@ export default function Display() {
                                     cardBgClass="bg-green-100"
                                     sectionId={`st-ready-${idx}`}
                                     getOrderLabel={getOrderLabel}
-                                    autoScrollEnabled={autoScrollPagesEnabled}
+                                    autoScrollEnabled={true}
+                                    displayZoom={displayZoom}
                                 />
                             </div>
                         );
@@ -898,6 +912,7 @@ export default function Display() {
                             immediateRemoval
                             getOrderLabel={getOrderLabel}
                             autoScrollEnabled={autoScrollPagesEnabled}
+                            displayZoom={displayZoom}
                         />
                     </div>
                     <div className="col-span-1 h-full">
@@ -910,7 +925,8 @@ export default function Display() {
                             cardBgClass="bg-green-100"
                             sectionId="ready"
                             getOrderLabel={getOrderLabel}
-                            autoScrollEnabled={autoScrollPagesEnabled}
+                            autoScrollEnabled={true}
+                            displayZoom={displayZoom}
                         />
                     </div>
                 </main>
@@ -918,7 +934,7 @@ export default function Display() {
             /* NORMAL — SINGLE MODE */
             ) : (
                 <main className="flex-1 overflow-hidden p-4">
-                    <div className="h-full grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(clamp(100px, 14vw, 220px), 1fr))`, gridTemplateRows: `repeat(auto-fill, minmax(80px, 1fr))` }}>
+                    <div className="h-full grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(clamp(${100 * displayZoom / 100}px, 14vw, ${220 * displayZoom / 100}px), 1fr))`, gridTemplateRows: `repeat(auto-fill, minmax(${80 * displayZoom / 100}px, 1fr))` }}>
                         {pageOrders.map((order, idx) => order ? (
                             <OrderCard key={order.id} order={order} getOrderLabel={getOrderLabel} />
                         ) : (
