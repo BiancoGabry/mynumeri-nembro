@@ -52,8 +52,10 @@ export default function Manager() {
     // Refs to current station maps so SSE closures can look up orders by id
     const stationConfirmedRef = useRef<Record<string, Order[]>>({});
     const stationCompletedRef = useRef<Record<string, Order[]>>({});
+    const pickedUpOrdersRef = useRef<Order[]>([]);
     useEffect(() => { stationConfirmedRef.current = stationConfirmed; }, [stationConfirmed]);
     useEffect(() => { stationCompletedRef.current = stationCompleted; }, [stationCompleted]);
+    useEffect(() => { pickedUpOrdersRef.current = pickedUpOrders; }, [pickedUpOrders]);
 
     const fetchAllPages = async (baseParams: string): Promise<Order[]> => {
         let page = 1;
@@ -217,6 +219,9 @@ export default function Manager() {
                             if (order) break;
                         }
                     }
+                    if (!order) {
+                        order = pickedUpOrdersRef.current.find(o => String(o.id) === sid);
+                    }
 
                     removeFromAllStations(sid);
 
@@ -234,9 +239,14 @@ export default function Manager() {
                             return next;
                         });
                     } else if (status === 'COMPLETED' && order) {
-                        const stIds = Object.keys(stationConfirmedRef.current).filter(k =>
+                        const stIdsFromConfirmed = Object.keys(stationConfirmedRef.current).filter(k =>
                             stationConfirmedRef.current[k].some(o => String(o.id) === sid)
                         );
+                        // fallback: use order.ordersStations when coming from PICKED_UP
+                        const stIds = stIdsFromConfirmed.length > 0
+                            ? stIdsFromConfirmed
+                            : (order.ordersStations ?? []).filter(k => k in stationCompletedRef.current);
+                        setPickedUpOrders(prev => prev.filter(o => String(o.id) !== sid));
                         setStationCompleted(prev => {
                             const next = { ...prev };
                             for (const stId of stIds) {
@@ -269,8 +279,10 @@ export default function Manager() {
                 const sid = String(orderId);
 
                 if (status === 'COMPLETED') {
-                    const order = stationConfirmedRef.current[stationId]?.find(o => String(o.id) === sid);
+                    const order = stationConfirmedRef.current[stationId]?.find(o => String(o.id) === sid)
+                               ?? pickedUpOrdersRef.current.find(o => String(o.id) === sid);
                     setStationConfirmed(prev => ({ ...prev, [stationId]: (prev[stationId] ?? []).filter(o => String(o.id) !== sid) }));
+                    setPickedUpOrders(prev => prev.filter(o => String(o.id) !== sid));
                     if (order) setStationCompleted(prev => prev[stationId]?.find(o => String(o.id) === sid) ? prev : { ...prev, [stationId]: [...(prev[stationId] ?? []), order] });
                 } else if (status === 'CONFIRMED') {
                     const order = stationCompletedRef.current[stationId]?.find(o => String(o.id) === sid)
@@ -340,27 +352,20 @@ export default function Manager() {
     };
 
     const handleStationMarkPickup = (order: Order, stationId: string) => {
-        setStationCompleted(prev => {
-            const next = { ...prev };
-            for (const k of Object.keys(next)) next[k] = next[k].filter(o => o.id !== order.id);
-            return next;
-        });
+        setStationCompleted(prev => ({ ...prev, [stationId]: prev[stationId]?.filter(o => o.id !== order.id) ?? [] }));
         setPickedUpOrders(prev => [...prev, order]);
         updateOrderStatus(order.id, 'PICKED_UP', stationId);
     };
 
-    const handlePickupToCompleteStation = (order: Order) => {
+    const handlePickupToCompleteStation = (order: Order, stationId?: string) => {
         setPickedUpOrders(prev => prev.filter(o => o.id !== order.id));
-        setStationCompleted(prev => {
-            const next = { ...prev };
-            for (const stId of order.ordersStations ?? []) {
-                if (stId in next && !next[stId].find(o => o.id === order.id)) {
-                    next[stId] = [...next[stId], order];
-                }
-            }
-            return next;
-        });
-        updateOrderStatus(order.id, 'COMPLETED');
+        if (stationId) {
+            setStationCompleted(prev => ({
+                ...prev,
+                [stationId]: prev[stationId]?.find(o => o.id === order.id) ? prev[stationId] : [...(prev[stationId] ?? []), order],
+            }));
+        }
+        updateOrderStatus(order.id, 'COMPLETED', stationId);
     };
 
     // --- Normal mode handlers ---
@@ -399,6 +404,7 @@ export default function Manager() {
                             <StationCard
                                 key={station.id}
                                 className="flex-1 min-w-60"
+                                stationId={station.id}
                                 stationName={station.name}
                                 confirmedOrders={stationConfirmed[station.id] ?? []}
                                 completedOrders={stationCompleted[station.id] ?? []}
@@ -409,7 +415,7 @@ export default function Manager() {
                                 onConfirmedNext={order => handleStationMarkDone(order, station.id)}
                                 onCompletedPrev={order => handleStationMarkUndo(order, station.id)}
                                 onCompletedNext={order => handleStationMarkPickup(order, station.id)}
-                                onPickupPrev={handlePickupToCompleteStation}
+                                onPickupPrev={order => handlePickupToCompleteStation(order, station.id)}
                             />
                         ))}
                     </div>

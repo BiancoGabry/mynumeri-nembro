@@ -8,10 +8,11 @@ import { useTranslation } from "react-i18next";
 interface PickedUpOrdersSheetProps {
     pickedUpOrders: Order[];
     onPrev?: (order: Order) => void;
+    stationId?: string;
     stationName?: string;
 }
 
-export function PickedUpOrdersSheet({ pickedUpOrders, onPrev, stationName }: PickedUpOrdersSheetProps) {
+export function PickedUpOrdersSheet({ pickedUpOrders, onPrev, stationId, stationName }: PickedUpOrdersSheetProps) {
     const { t } = useTranslation();
     const title = stationName
         ? `${t("manager.pickedUpOrders")} — ${stationName}`
@@ -30,6 +31,7 @@ export function PickedUpOrdersSheet({ pickedUpOrders, onPrev, stationName }: Pic
                     status="PICKED_UP"
                     className="rounded-none bg-background shadow-none outline-0 h-[calc(100vh-8rem)] mt-4 px-4 pb-4"
                     orders={pickedUpOrders}
+                    stationId={stationId}
                     onPrev={onPrev}
                 />
             </SheetContent>

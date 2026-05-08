@@ -306,6 +306,7 @@ export default function Display() {
     // Refs to current station maps so SSE closures can look up orders by id
     const stationConfirmedRef = useRef<Record<string, ReadyOrder[]>>({});
     const stationCompletedRef = useRef<Record<string, ReadyOrder[]>>({});
+    const pickedUpOrdersRef = useRef<Record<string, ReadyOrder>>({});
     useEffect(() => { stationConfirmedRef.current = stationConfirmed; }, [stationConfirmed]);
     useEffect(() => { stationCompletedRef.current = stationCompleted; }, [stationCompleted]);
 
@@ -607,11 +608,13 @@ export default function Display() {
                 const mode = displayModeRef.current;
 
                 if (status === "COMPLETED") {
-                    const order = stationConfirmedRef.current[stationId]?.find(o => String(o.id) === sid);
+                    const order = stationConfirmedRef.current[stationId]?.find(o => String(o.id) === sid)
+                               ?? pickedUpOrdersRef.current[sid];
                     setStationConfirmed(prev => ({ ...prev, [stationId]: (prev[stationId] ?? []).filter(o => String(o.id) !== sid) }));
-                    if (order) setStationCompleted(prev => prev[stationId]?.find(o => String(o.id) === sid) ? prev : { ...prev, [stationId]: [...(prev[stationId] ?? []), order] });
-                    if (mode === "ready" || mode === "hybrid") {
-                        if (order) setFsQueue(q => q.find(o => String(o.id) === sid) ? q : [...q, order]);
+                    if (order) {
+                        delete pickedUpOrdersRef.current[sid];
+                        setStationCompleted(prev => prev[stationId]?.find(o => String(o.id) === sid) ? prev : { ...prev, [stationId]: [...(prev[stationId] ?? []), order] });
+                        if (mode === "ready" || mode === "hybrid") setFsQueue(q => q.find(o => String(o.id) === sid) ? q : [...q, order]);
                     }
                 } else if (status === "CONFIRMED") {
                     const order = stationCompletedRef.current[stationId]?.find(o => String(o.id) === sid)
@@ -619,6 +622,9 @@ export default function Display() {
                     setStationCompleted(prev => ({ ...prev, [stationId]: (prev[stationId] ?? []).filter(o => String(o.id) !== sid) }));
                     if (order) setStationConfirmed(prev => prev[stationId]?.find(o => String(o.id) === sid) ? prev : { ...prev, [stationId]: [...(prev[stationId] ?? []), order] });
                 } else if (status === "PICKED_UP") {
+                    const order = stationCompletedRef.current[stationId]?.find(o => String(o.id) === sid)
+                               ?? stationConfirmedRef.current[stationId]?.find(o => String(o.id) === sid);
+                    if (order) pickedUpOrdersRef.current[sid] = order;
                     setStationConfirmed(prev => ({ ...prev, [stationId]: (prev[stationId] ?? []).filter(o => String(o.id) !== sid) }));
                     setStationCompleted(prev => ({ ...prev, [stationId]: (prev[stationId] ?? []).filter(o => String(o.id) !== sid) }));
                 }

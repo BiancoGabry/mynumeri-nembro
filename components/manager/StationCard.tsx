@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 
 interface StationCardProps {
     className?: string;
+    stationId: string;
     stationName: string;
     confirmedOrders: Order[];
     completedOrders: Order[];
@@ -19,6 +20,7 @@ interface StationCardProps {
 
 export function StationCard({
     className,
+    stationId,
     stationName,
     confirmedOrders,
     completedOrders,
@@ -47,7 +49,7 @@ export function StationCard({
                 <div className="flex-1 overflow-y-auto px-4 pb-4">
                     <div className="flex gap-3 flex-wrap items-start place-content-start">
                         {confirmedOrders.map(order => (
-                            <div key={order.id} className="min-w-max">
+                            <div key={`${order.id}-${stationId}`} className="min-w-max">
                                 <OrderCard order={order} status="CONFIRMED" onNext={onConfirmedNext} />
                             </div>
                         ))}
@@ -64,12 +66,12 @@ export function StationCard({
                     <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide select-none">
                         {t("manager.readyOrders")}
                     </span>
-                    <PickedUpOrdersSheet pickedUpOrders={pickedUpOrders} onPrev={onPickupPrev} stationName={stationName} />
+                    <PickedUpOrdersSheet pickedUpOrders={pickedUpOrders} onPrev={onPickupPrev} stationId={stationId} stationName={stationName} />
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4">
                     <div className="flex gap-3 flex-wrap items-start place-content-start">
                         {completedOrders.map(order => (
-                            <div key={order.id} className="min-w-max">
+                            <div key={`${order.id}-${stationId}`} className="min-w-max">
                                 <OrderCard order={order} status="COMPLETED" onPrev={onCompletedPrev} onNext={onCompletedNext} />
                             </div>
                         ))}

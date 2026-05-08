@@ -12,11 +12,12 @@ interface OrdersGridProps {
     title?: string;
     children?: React.ReactNode;
     status?: Status;
+    stationId?: string;
     onPrev?: (order: Order) => void;
     onNext?: (order: Order) => void;
 }
 
-export default function OrdersGrid({ className, orders, title, status, onPrev, onNext, children }: OrdersGridProps) {
+export default function OrdersGrid({ className, orders, title, status, stationId, onPrev, onNext, children }: OrdersGridProps) {
     return (
         <div className={cn("select-none h-full w-full rounded-xl outline-2 outline-secondary bg-card shadow-lg overflow-hidden flex flex-col", className)}>
             <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -34,7 +35,7 @@ export default function OrdersGrid({ className, orders, title, status, onPrev, o
                 <div className="flex gap-3 flex-wrap items-start place-content-start">
                     {
                         orders.map((order) => (
-                            <div key={order.id} className="min-w-max">
+                            <div key={stationId ? `${order.id}-${stationId}` : order.id} className="min-w-max">
                                 <OrderCard order={order} status={status} onPrev={onPrev} onNext={onNext} />
                             </div>
                         ))
