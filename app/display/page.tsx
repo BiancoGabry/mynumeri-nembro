@@ -579,17 +579,11 @@ export default function Display() {
                     }
                     return next;
                 });
-                if (mode === "preparing" || mode === "hybrid") {
-                    if (fullscreenAlertEnabledRef.current) setFsQueue(q => q.find(o => String(o.id) === String(data.id)) ? q : [...q, data]);
-                }
                 return;
             }
 
             if (mode === "preparing" || mode === "hybrid") {
                 setPrepOrders(prev => prev.find(o => String(o.id) === String(data.id)) ? prev : [...prev, data]);
-            }
-            if (mode === "preparing") {
-                if (fullscreenAlertEnabledRef.current) setFsQueue(q => q.find(o => String(o.id) === String(data.id)) ? q : [...q, data]);
             }
         });
 
