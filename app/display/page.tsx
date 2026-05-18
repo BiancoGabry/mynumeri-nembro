@@ -546,7 +546,6 @@ export default function Display() {
     // SSE — order updates
     // ------------------------------------------------------------------
     useEffect(() => {
-        fetchOrders();
         const es = new EventSource("/api/events/display");
 
         const removeFromAllStationMaps = (orderId: string) => {

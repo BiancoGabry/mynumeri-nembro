@@ -63,10 +63,31 @@ export function OrderCard({ order, status, onPrev, onNext }: OrderCardProps) {
     const [ticketNumberMax, setTicketNumberMax] = useState<number>(0);
 
     useEffect(() => {
-        const nd = localStorage.getItem(NUMBER_DISPLAY_KEY) as NumberDisplay | null;
-        if (nd && ["displayCode", "ticketNumber"].includes(nd)) setNumberDisplay(nd);
-        const mx = localStorage.getItem(TICKET_NUMBER_MAX_KEY);
-        if (mx !== null) { const n = parseInt(mx, 10); if (!isNaN(n) && n >= 0) setTicketNumberMax(n); }
+        fetch("/api/display-config")
+            .then(res => res.ok ? res.json() : null)
+            .then(cfg => {
+                if (!cfg) {
+                    const nd = localStorage.getItem(NUMBER_DISPLAY_KEY) as NumberDisplay | null;
+                    if (nd && ["displayCode", "ticketNumber"].includes(nd)) setNumberDisplay(nd);
+                    const mx = localStorage.getItem(TICKET_NUMBER_MAX_KEY);
+                    if (mx !== null) { const n = parseInt(mx, 10); if (!isNaN(n) && n >= 0) setTicketNumberMax(n); }
+                    return;
+                }
+                if (cfg.numberDisplay && ["displayCode", "ticketNumber"].includes(cfg.numberDisplay)) {
+                    setNumberDisplay(cfg.numberDisplay as NumberDisplay);
+                    localStorage.setItem(NUMBER_DISPLAY_KEY, cfg.numberDisplay);
+                }
+                if (typeof cfg.ticketNumberMax === "number" && cfg.ticketNumberMax >= 0) {
+                    setTicketNumberMax(cfg.ticketNumberMax);
+                    localStorage.setItem(TICKET_NUMBER_MAX_KEY, String(cfg.ticketNumberMax));
+                }
+            })
+            .catch(() => {
+                const nd = localStorage.getItem(NUMBER_DISPLAY_KEY) as NumberDisplay | null;
+                if (nd && ["displayCode", "ticketNumber"].includes(nd)) setNumberDisplay(nd);
+                const mx = localStorage.getItem(TICKET_NUMBER_MAX_KEY);
+                if (mx !== null) { const n = parseInt(mx, 10); if (!isNaN(n) && n >= 0) setTicketNumberMax(n); }
+            });
     }, []);
 
     function addNext() {

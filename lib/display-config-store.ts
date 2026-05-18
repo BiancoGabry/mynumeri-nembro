@@ -114,6 +114,8 @@ export function subscribe(fn: Subscriber): () => void {
 }
 
 export function subscribeConfig(fn: ConfigSubscriber): () => void {
+    loadFromFile();
+    fn({ ...cache });
     configSubscribers.add(fn);
     return () => configSubscribers.delete(fn);
 }
