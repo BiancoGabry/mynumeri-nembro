@@ -39,7 +39,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/mysagra/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/BiancoGabry/${{ env.IMAGE_NAME }}
           tags: |
             # Aggiunge il tag 'latest' se l'evento avviene sul branch principale
             type=raw,value=latest,enable={{is_default_branch}}
