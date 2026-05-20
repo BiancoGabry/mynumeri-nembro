@@ -767,8 +767,8 @@ export default function Display() {
                                     bottomOrders={sortedBottom}
                                     topTitle={t("display.preparing")}
                                     bottomTitle={t("display.ready")}
-                                    topHeaderClass="bg-yellow-300"
-                                    bottomHeaderClass="bg-green-400"
+                                    topHeaderClass="bg-[#4a9fbd]"
+                                    bottomHeaderClass="bg-[#e38744]"
                                     topCardBgClass="bg-yellow-100"
                                     bottomCardBgClass="bg-green-100"
                                     sectionId={`st-${idx}`}
