@@ -63,6 +63,7 @@ export const en = {
       displayModeHybridDesc: "¾ of the page for preparing orders and ¼ for ready orders",
       display: "Display",
       displayDesc: "Edit the display page",
+      displayOptions: "Display options",
       operativeMode: "Operative mode",
       operativeModeDesc: "Select what to show on the public display page",
       saving: "Saving...",
@@ -94,6 +95,11 @@ export const en = {
       stationsSaved: "Stations setting saved",
       fullscreenAlertEnabled: "Full-screen alert",
       fullscreenAlertEnabledDesc: "Show a full-screen overlay when an order is ready",
+      autoScrollPagesEnabled: "Auto-scroll pages",
+      autoScrollPagesEnabledDesc: "Automatically scroll through order pages every 10 seconds",
+      displayZoom: "Display zoom",
+      displayZoomDesc: "Zoom in or out to see more or fewer orders",
+      zoomSaved: "Display zoom saved",
       allOrders: "All orders"
     },
     session: {
